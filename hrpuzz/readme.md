@@ -10,4 +10,4 @@ The price is stored in the following Stratis addresses: `SNAyGkY7z2xTf4DbWSrUHEr
 
 You can use the [Stratis Blockchain Explorer](https://chainz.cryptoid.info/strat/) to see if someone claimed the price already.
 
-You can find the puzzles in the `words` folder. To start solving the second puzzle, start with `market`.
+You can find the puzzles in the [words folder](https://github.com/Aprogiena/StratisBitcoinFullNode/tree/experiment/hrpuzz/hrpuzz/words). To start solving the second puzzle, start with `market`.
