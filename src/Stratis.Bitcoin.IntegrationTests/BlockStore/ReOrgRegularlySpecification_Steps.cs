@@ -1,4 +1,5 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using FluentAssertions;
 using FluentAssertions.Common;
 using NBitcoin;
@@ -22,6 +23,7 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
         private Transaction secondNodeTransaction;
         private Money secondNodeTransationFee;
         private int selfishBlockHeight;
+        private IDictionary<string, CoreNode> nodes;
         private const string AccountZero = "account 0";
         private const string WalletZero = "wallet 0";
         private const string WalletPassword = "123456";
@@ -37,37 +39,57 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
 
         protected override void AfterTest()
         {
+            this.nodeBuilder.Dispose();
         }
 
         private void four_nodes()
         {
             this.nodeBuilder = NodeBuilder.Create();
 
-            this.selfishMiner = this.nodeBuilder.CreateStratisPowNode();
-            this.secondNode = this.nodeBuilder.CreateStratisPowNode();
-            this.thirdNode = this.nodeBuilder.CreateStratisPowNode();
-            this.fourthNode = this.nodeBuilder.CreateStratisPowNode();
+            var nodeNetworkBuilder = new NodeNetworkBuilder();
 
-            this.nodeBuilder.StartAll();
+            this.nodes = nodeNetworkBuilder
+                .StratisPowNode("Selfish", true).WhichIsNotInInitialBlockDownload()
+                .WithWallet(WalletZero, WalletPassword)
+                .ConnectedTo()
+                .StratisPowNode("B", true).WhichIsNotInInitialBlockDownload()
+                .WithWallet(WalletZero, WalletPassword)
+                .ConnectedTo()
+                .StratisPowNode("C", true).WhichIsNotInInitialBlockDownload()
+                .WithWallet(WalletZero, WalletPassword)
+                .StratisPowNode("D", true).WhichIsNotInInitialBlockDownload()
+                .WithWallet(WalletZero, WalletPassword)
+                .Build();
 
-            this.selfishMiner.NotInIBD();
-            this.secondNode.NotInIBD();
-            this.thirdNode.NotInIBD();
-            this.fourthNode.NotInIBD();
+            this.selfishMiner = this.nodes.Values.First();
+            this.secondNode = this.nodes.Values.Skip(1).First();
+            this.thirdNode = this.nodes.Values.Skip(2).First();
+            this.fourthNode = this.nodes.Values.Skip(3).First();
+            //this.selfishMiner = this.nodeBuilder.CreateStratisPowNode();
+            //this.secondNode = this.nodeBuilder.CreateStratisPowNode();
+            //this.thirdNode = this.nodeBuilder.CreateStratisPowNode();
+            //this.fourthNode = this.nodeBuilder.CreateStratisPowNode();
 
-            this.selfishMiner.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
-            this.secondNode.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
-            this.thirdNode.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
-            this.fourthNode.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
+            //this.nodeBuilder.StartAll();
 
-            this.selfishMiner.CreateRPCClient().AddNode(this.secondNode.Endpoint, true);
-            TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(this.secondNode, this.selfishMiner));
+            //this.selfishMiner.NotInIBD();
+            //this.secondNode.NotInIBD();
+            //this.thirdNode.NotInIBD();
+            //this.fourthNode.NotInIBD();
 
-            this.secondNode.CreateRPCClient().AddNode(this.thirdNode.Endpoint, true);
-            TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(this.thirdNode, this.secondNode));
+            //this.selfishMiner.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
+            //this.secondNode.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
+            //this.thirdNode.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
+            //this.fourthNode.FullNode.WalletManager().CreateWallet(WalletPassword, WalletZero);
 
-            this.thirdNode.CreateRPCClient().AddNode(this.fourthNode.Endpoint, true);
-            TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(this.fourthNode, this.thirdNode));
+            //this.selfishMiner.CreateRPCClient().AddNode(this.secondNode.Endpoint, true);
+            //TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(this.secondNode, this.selfishMiner));
+
+            //this.secondNode.CreateRPCClient().AddNode(this.thirdNode.Endpoint, true);
+            //TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(this.thirdNode, this.secondNode));
+
+            //this.thirdNode.CreateRPCClient().AddNode(this.fourthNode.Endpoint, true);
+            //TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(this.fourthNode, this.thirdNode));
         }
 
         private void each_mine_a_block()
@@ -112,7 +134,6 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
 
         private void third_node_mines_this_block()
         {
-            //int feeForSecondToThirdTransaction = 4520; 
             this.sharedSteps.MineBlocks(1, this.thirdNode, AccountZero, WalletZero, WalletPassword, this.secondNodeTransationFee.Satoshi);
         }
 
@@ -142,8 +163,8 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
 
         private void transaction_from_shorter_chain_is_missing()
         {
-            var transaction = this.secondNode.FullNode.BlockStoreManager().BlockRepository.GetTrxAsync(this.secondNodeTransaction.GetHash()).Result;
-            transaction.Should().BeNull("longest chain comes from selfish miner and shouldn't contain the transaction made on the chain with the other 3 nodes.");
+            this.secondNode.FullNode.BlockStoreManager().BlockRepository.GetTrxAsync(this.secondNodeTransaction.GetHash()).Result
+                .Should().BeNull("longest chain comes from selfish miner and shouldn't contain the transaction made on the chain with the other 3 nodes.");
         }
 
         private void transaction_is_NOT_YET_returned_to_the_mem_pool()
@@ -163,6 +184,62 @@ namespace Stratis.Bitcoin.IntegrationTests.BlockStore
             TestHelper.WaitLoop(() => TestHelper.IsNodeSynced(this.secondNode));
             TestHelper.WaitLoop(() => TestHelper.IsNodeSynced(this.thirdNode));
             TestHelper.WaitLoop(() => TestHelper.IsNodeSynced(this.fourthNode));
+        }
+    }
+
+    internal class NodeNetworkBuilder
+    {
+        private readonly NodeBuilder nodeBuilder;
+        private Dictionary<string, CoreNode> nodes;
+        private bool sync;
+
+        public NodeNetworkBuilder()
+        {
+            this.nodeBuilder = NodeBuilder.Create();
+            this.nodes = new Dictionary<string, CoreNode>();
+        }
+
+        public IDictionary<string, CoreNode> Build()
+        {
+            CoreNode previousNode = null;
+            foreach (var nextNode in this.nodes.Values)
+            {
+                nextNode.Start();
+                if (previousNode == null)
+                {
+                    previousNode = nextNode;
+                    continue;
+                }
+
+                previousNode.CreateRPCClient().AddNode(nextNode.Endpoint, true);
+                TestHelper.WaitLoop(() => TestHelper.AreNodesSynced(previousNode, nextNode));
+            }
+
+            return this.nodes;
+        }
+
+        public NodeNetworkBuilder StratisPowNode(string nodeName, bool started)
+        {
+            this.nodes.Add(nodeName, this.nodeBuilder.CreateStratisPowNode(started));
+            
+            return this;
+        }
+
+        public NodeNetworkBuilder WhichIsNotInInitialBlockDownload()
+        {
+            this.nodes.Last().Value.NotInIBD();
+            return this;
+        }
+
+        public NodeNetworkBuilder WithWallet(string walletName, string walletPassword)
+        {
+            this.nodes.Last().Value.FullNode.WalletManager().CreateWallet(walletPassword, walletName);
+            return this;
+        }
+
+        public NodeNetworkBuilder ConnectedTo()
+        {
+            return this;
         }
     }
 }
