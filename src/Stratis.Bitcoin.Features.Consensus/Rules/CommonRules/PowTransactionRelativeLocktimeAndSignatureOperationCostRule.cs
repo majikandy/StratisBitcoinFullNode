@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using System.Threading.Tasks;
+﻿using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Stratis.Bitcoin.Base.Deployments;
@@ -13,7 +12,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
     /// Then updates the coinview with each transaction
     /// </summary>
     [ExecutionRule]
-    public class PowTransactionRelativeLocktimeAndSignatureOperationCostRule : ConsensusRule 
+    public class PowTransactionRelativeLocktimeAndSignatureOperationCostRule : ConsensusRule
     {
         /// <summary>Consensus options.</summary>
         public PowConsensusOptions ConsensusOptions { get; private set; }
@@ -25,85 +24,102 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
         public override Task RunAsync(RuleContext context)
         {
-            Block block = context.BlockValidationContext.Block;
-            ChainedBlock index2 = context.BlockValidationContext.ChainedBlock;
+            this.Parent.PerformanceCounter.AddProcessedBlocks(1);
+
+            foreach (Transaction transaction in context.BlockValidationContext.Block.Transactions)
+            {
+                this.Parent.PerformanceCounter.AddProcessedTransactions(1);
+
+                this.CheckTransactionFinalRunAsync(transaction, context);
+                this.CheckNotExceedsMaxSigOpsCost(transaction, context);
+                this.CheckInputs(transaction, context);
+                this.AddCalculatedFee(transaction, context);
+                this.BuildInputsToCheck(transaction, context);
+                this.UpdateCoinView(context, transaction);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private Task CheckNotExceedsMaxSigOpsCost(Transaction transaction, RuleContext context)
+        {
+            // GetTransactionSignatureOperationCost counts 3 types of sigops:
+            // * legacy (always),
+            // * p2sh (when P2SH enabled in flags and excludes coinbase),
+            // * witness (when witness enabled in flags and excludes coinbase).
+            context.SigOpsCost += this.GetTransactionSignatureOperationCost(transaction, context.Set, context.Flags);
+            if (context.SigOpsCost > this.ConsensusOptions.MaxBlockSigopsCost)
+                ConsensusErrors.BadBlockSigOps.Throw();
+
+            return Task.CompletedTask;
+        }
+
+        private Task BuildInputsToCheck(Transaction transaction, RuleContext context)
+        {
+            if (transaction.IsCoinBase)
+                return Task.CompletedTask;
+
+            var txData = new PrecomputedTransactionData(transaction);
+            for (int inputIndex = 0; inputIndex < transaction.Inputs.Count; inputIndex++)
+            {
+                this.Parent.PerformanceCounter.AddProcessedInputs(1);
+                TxIn input = transaction.Inputs[inputIndex];
+                int inputIndexCopy = inputIndex;
+                TxOut txout = context.Set.GetOutputFor(input);
+                var checkInput = new Task<bool>(() =>
+                {
+                    var checker = new TransactionChecker(transaction, inputIndexCopy, txout.Value, txData);
+                    var scriptEvaluationContext = new ScriptEvaluationContext(this.Parent.Network)
+                    {
+                        ScriptVerify = context.Flags.ScriptFlags
+                    };
+                    return scriptEvaluationContext.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
+                });
+                checkInput.Start(context.TaskScheduler);
+                context.CheckInputs.Add(checkInput);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private Task AddCalculatedFee(Transaction transaction, RuleContext context)
+        {
+            if (transaction.IsCoinBase)
+                return Task.CompletedTask;
+
+            context.Fees += context.Set.GetValueIn(transaction) - transaction.TotalOut;
+
+            return Task.CompletedTask;
+        }
+
+        private Task CheckTransactionFinalRunAsync(Transaction transaction, RuleContext context)
+        {
+            if (transaction.IsCoinBase)
+                return Task.CompletedTask;
+
+            ChainedBlock index = context.BlockValidationContext.ChainedBlock;
             DeploymentFlags flags = context.Flags;
             UnspentOutputSet view = context.Set;
 
-            this.Parent.PerformanceCounter.AddProcessedBlocks(1);
-
-            long sigOpsCost = 0;
-
-            var fees = Money.Zero;
-
-            context.CheckInputs = new List<Task<bool>>();
-            for (int txIndex = 0; txIndex < block.Transactions.Count; txIndex++)
+            if (!view.HaveInputs(transaction))
             {
-                this.Parent.PerformanceCounter.AddProcessedTransactions(1);
-                Transaction tx = block.Transactions[txIndex];
-                if (!context.SkipValidation)
-                {
-                    if (!tx.IsCoinBase)//TODO before PR - create POS rule && (!context.IsPoS || (context.IsPoS && !tx.IsCoinStake)))
-                    {
-                        int[] prevheights;
+                this.Logger.LogTrace("(-)[BAD_TX_NO_INPUT]");
+                ConsensusErrors.BadTransactionMissingInput.Throw();
+            }
 
-                        if (!view.HaveInputs(tx))
-                        {
-                            this.Logger.LogTrace("(-)[BAD_TX_NO_INPUT]");
-                            ConsensusErrors.BadTransactionMissingInput.Throw();
-                        }
+            var prevheights = new int[transaction.Inputs.Count];
+            // Check that transaction is BIP68 final.
+            // BIP68 lock checks (as opposed to nLockTime checks) must
+            // be in ConnectBlock because they require the UTXO set.
+            for (int j = 0; j < transaction.Inputs.Count; j++)
+            {
+                prevheights[j] = (int)view.AccessCoins(transaction.Inputs[j].PrevOut.Hash).Height;
+            }
 
-                        prevheights = new int[tx.Inputs.Count];
-                        // Check that transaction is BIP68 final.
-                        // BIP68 lock checks (as opposed to nLockTime checks) must
-                        // be in ConnectBlock because they require the UTXO set.
-                        for (int j = 0; j < tx.Inputs.Count; j++)
-                        {
-                            prevheights[j] = (int)view.AccessCoins(tx.Inputs[j].PrevOut.Hash).Height;
-                        }
-
-                        if (!tx.CheckSequenceLocks(prevheights, index2, flags.LockTimeFlags))
-                        {
-                            this.Logger.LogTrace("(-)[BAD_TX_NON_FINAL]");
-                            ConsensusErrors.BadTransactionNonFinal.Throw();
-                        }
-                    }
-
-                    // GetTransactionSignatureOperationCost counts 3 types of sigops:
-                    // * legacy (always),
-                    // * p2sh (when P2SH enabled in flags and excludes coinbase),
-                    // * witness (when witness enabled in flags and excludes coinbase).
-                    sigOpsCost += this.GetTransactionSignatureOperationCost(tx, view, flags);
-                    if (sigOpsCost > this.ConsensusOptions.MaxBlockSigopsCost)
-                        ConsensusErrors.BadBlockSigOps.Throw();
-
-                    if (!tx.IsCoinBase)//TODO before PR - create POS rule && (!context.IsPoS || (context.IsPoS && !tx.IsCoinStake)))
-                    { 
-                        this.CheckInputs(tx, view, index2.Height);
-                        fees += view.GetValueIn(tx) - tx.TotalOut;
-                        var txData = new PrecomputedTransactionData(tx);
-                        for (int inputIndex = 0; inputIndex < tx.Inputs.Count; inputIndex++)
-                        {
-                            this.Parent.PerformanceCounter.AddProcessedInputs(1);
-                            TxIn input = tx.Inputs[inputIndex];
-                            int inputIndexCopy = inputIndex;
-                            TxOut txout = view.GetOutputFor(input);
-                            var checkInput = new Task<bool>(() =>
-                            {
-                                var checker = new TransactionChecker(tx, inputIndexCopy, txout.Value, txData);
-                                var ctx = new ScriptEvaluationContext(this.Parent.Network);
-                                ctx.ScriptVerify = flags.ScriptFlags;
-                                return ctx.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
-                            });
-                            checkInput.Start(context.TaskScheduler);
-                            context.CheckInputs.Add(checkInput);
-                        }
-                    }
-                }
-
-                context.Fees = fees;
-
-                this.UpdateCoinView(context, tx);
+            if (!transaction.CheckSequenceLocks(prevheights, index, flags.LockTimeFlags))
+            {
+                this.Logger.LogTrace("(-)[BAD_TX_NON_FINAL]");
+                ConsensusErrors.BadTransactionNonFinal.Throw();
             }
 
             return Task.CompletedTask;
@@ -181,8 +197,14 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             this.Logger.LogTrace("(-)");
         }
 
-        protected virtual void CheckInputs(Transaction transaction, UnspentOutputSet inputs, int spendHeight)
+        protected virtual Task CheckInputs(Transaction transaction, RuleContext context)
         {
+            if (transaction.IsCoinBase)
+                return Task.CompletedTask;
+
+            UnspentOutputSet inputs = context.Set;
+            int spendHeight = context.BlockValidationContext.ChainedBlock.Height;
+
             //TODO before Merge - share this code between the rules and remove the call inside MempoolValidator
             this.Logger.LogTrace("({0}:{1})", nameof(spendHeight), spendHeight);
 
@@ -229,6 +251,8 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             }
 
             this.Logger.LogTrace("(-)");
+
+            return Task.CompletedTask;
         }
 
         /// <summary>

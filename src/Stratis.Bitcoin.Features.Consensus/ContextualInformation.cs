@@ -61,9 +61,9 @@ namespace Stratis.Bitcoin.Features.Consensus
 
         public UnspentOutputSet Set { get; set; }
 
-        public Money Fees { get; set; }
+        public Money Fees { get; set; } = Money.Zero;
 
-        public List<Task<bool>> CheckInputs { get; set; }
+        public List<Task<bool>> CheckInputs { get; set; } = new List<Task<bool>>();
 
         public bool CheckMerkleRoot { get; set; }
 
@@ -83,6 +83,8 @@ namespace Stratis.Bitcoin.Features.Consensus
         {
             get { return this.Stake != null; }
         }
+
+        public long SigOpsCost { get; set; }
 
         public RuleContext()
         {
