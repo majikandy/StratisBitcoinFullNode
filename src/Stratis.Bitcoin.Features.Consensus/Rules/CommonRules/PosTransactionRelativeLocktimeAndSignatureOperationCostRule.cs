@@ -72,8 +72,10 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
                 var checkInput = new Task<bool>(() =>
                 {
                     var checker = new TransactionChecker(tx, inputIndexCopy, txout.Value, txData);
-                    var ctx = new ScriptEvaluationContext();
-                    ctx.ScriptVerify = flags.ScriptFlags;
+                    var ctx = new ScriptEvaluationContext(this.Parent.Network)
+                    {
+                        ScriptVerify = flags.ScriptFlags
+                    };
                     return ctx.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
                 });
                 checkInput.Start(context.TaskScheduler);

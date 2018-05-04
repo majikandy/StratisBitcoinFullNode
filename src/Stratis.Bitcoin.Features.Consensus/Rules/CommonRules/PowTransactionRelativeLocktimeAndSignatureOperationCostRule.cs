@@ -91,7 +91,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
                             var checkInput = new Task<bool>(() =>
                             {
                                 var checker = new TransactionChecker(tx, inputIndexCopy, txout.Value, txData);
-                                var ctx = new ScriptEvaluationContext();
+                                var ctx = new ScriptEvaluationContext(this.Parent.Network);
                                 ctx.ScriptVerify = flags.ScriptFlags;
                                 return ctx.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
                             });
@@ -123,7 +123,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             if (!flags.ScriptFlags.HasFlag(ScriptVerify.Witness))
                 return 0;
 
-            WitProgramParameters witParams = PayToWitTemplate.Instance.ExtractScriptPubKeyParameters2(scriptPubKey);
+            WitProgramParameters witParams = PayToWitTemplate.Instance.ExtractScriptPubKeyParameters2(this.Parent.Network, scriptPubKey);
 
             if (witParams?.Version == 0)
             {
@@ -273,8 +273,8 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             for (int i = 0; i < transaction.Inputs.Count; i++)
             {
                 TxOut prevout = inputs.GetOutputFor(transaction.Inputs[i]);
-                if (prevout.ScriptPubKey.IsPayToScriptHash)
-                    sigOps += prevout.ScriptPubKey.GetSigOpCount(transaction.Inputs[i].ScriptSig);
+                if (prevout.ScriptPubKey.IsPayToScriptHash(this.Parent.Network))
+                    sigOps += prevout.ScriptPubKey.GetSigOpCount(this.Parent.Network, transaction.Inputs[i].ScriptSig);
             }
 
             return sigOps;
