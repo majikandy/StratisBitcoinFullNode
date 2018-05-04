@@ -181,7 +181,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             this.Logger.LogTrace("(-)");
         }
 
-        public virtual void CheckInputs(Transaction transaction, UnspentOutputSet inputs, int spendHeight)
+        protected virtual void CheckInputs(Transaction transaction, UnspentOutputSet inputs, int spendHeight)
         {
             //TODO before Merge - share this code between the rules and remove the call inside MempoolValidator
             this.Logger.LogTrace("({0}:{1})", nameof(spendHeight), spendHeight);
