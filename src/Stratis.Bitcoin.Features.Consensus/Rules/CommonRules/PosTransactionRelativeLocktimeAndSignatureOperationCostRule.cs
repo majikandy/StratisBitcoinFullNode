@@ -14,7 +14,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
     /// With the addition of coinview update and maturity variations for Proof of Stake.
     /// </summary>
     [ExecutionRule]
-    public partial class PosTransactionRelativeLocktimeAndSignatureOperationCostRule : PowTransactionRelativeLocktimeAndSignatureOperationCostRule
+    public partial class PosTransactionRelativeLocktimeAndSignatureOperationCostRule : TransactionRulesRunner
     {
         /// <summary>Consensus options.</summary>
         private PosConsensusOptions consensusOptions;
@@ -50,7 +50,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
                 if (!tx.IsCoinStake)
                 {
-                    this.CalculateFees(context, tx, view, index);
+                    this.CalculateFees(context, tx, view);
                     this.AddCheckInputsToContext(context, tx, view, flags);
                 }
 
@@ -83,10 +83,10 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             }
         }
 
-        private void CalculateFees(RuleContext context, Transaction tx, UnspentOutputSet view, ChainedBlock index)
+        private void CalculateFees(RuleContext context, Transaction tx, UnspentOutputSet view)
         {
             //TODO before PR - this logic can be pulled out in the Pow Base and just called here
-            this.CheckInputs(tx, view, index.Height);
+            this.CheckInputs(tx, context);
             context.Fees += view.GetValueIn(tx) - tx.TotalOut;
         }
 

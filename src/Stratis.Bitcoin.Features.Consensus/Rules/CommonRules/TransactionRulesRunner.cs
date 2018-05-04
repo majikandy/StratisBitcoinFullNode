@@ -1,4 +1,5 @@
-﻿using System.Threading.Tasks;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Stratis.Bitcoin.Base.Deployments;
@@ -7,18 +8,25 @@ using Stratis.Bitcoin.Utilities;
 namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 {
     /// <summary>
-    /// Checks each transaction conforms to BIP68 Final (Time and Blockheight checks) - see https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
-    /// And checks signature operation costs
+    /// Checks signature operation costs
     /// Then updates the coinview with each transaction
     /// </summary>
     [ExecutionRule]
-    public class PowTransactionRelativeLocktimeAndSignatureOperationCostRule : ConsensusRule
+    public class TransactionRulesRunner : ConsensusRule
     {
+        private readonly IEnumerable<TransactionConsensusRule> transactionConsensusRules;
+
         /// <summary>Consensus options.</summary>
         public PowConsensusOptions ConsensusOptions { get; private set; }
 
+        public TransactionRulesRunner(params TransactionConsensusRule[] transactionConsensusRules)
+        {
+            this.transactionConsensusRules = transactionConsensusRules;
+        }
+
         public override void Initialize()
         {
+            //TODO before PR - this shouldn't be hardcoded as Pow - this will probably go away since this is now the runner of transaction rules
             this.ConsensusOptions = this.Parent.Network.Consensus.Option<PowConsensusOptions>();
         }
 
@@ -30,96 +38,14 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             {
                 this.Parent.PerformanceCounter.AddProcessedTransactions(1);
 
-                this.CheckTransactionFinalRunAsync(transaction, context);
-                this.CheckNotExceedsMaxSigOpsCost(transaction, context);
-                this.CheckInputs(transaction, context);
-                this.AddCalculatedFee(transaction, context);
-                this.BuildInputsToCheck(transaction, context);
-                this.UpdateCoinView(context, transaction);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private Task CheckNotExceedsMaxSigOpsCost(Transaction transaction, RuleContext context)
-        {
-            // GetTransactionSignatureOperationCost counts 3 types of sigops:
-            // * legacy (always),
-            // * p2sh (when P2SH enabled in flags and excludes coinbase),
-            // * witness (when witness enabled in flags and excludes coinbase).
-            context.SigOpsCost += this.GetTransactionSignatureOperationCost(transaction, context.Set, context.Flags);
-            if (context.SigOpsCost > this.ConsensusOptions.MaxBlockSigopsCost)
-                ConsensusErrors.BadBlockSigOps.Throw();
-
-            return Task.CompletedTask;
-        }
-
-        private Task BuildInputsToCheck(Transaction transaction, RuleContext context)
-        {
-            if (transaction.IsCoinBase)
-                return Task.CompletedTask;
-
-            var txData = new PrecomputedTransactionData(transaction);
-            for (int inputIndex = 0; inputIndex < transaction.Inputs.Count; inputIndex++)
-            {
-                this.Parent.PerformanceCounter.AddProcessedInputs(1);
-                TxIn input = transaction.Inputs[inputIndex];
-                int inputIndexCopy = inputIndex;
-                TxOut txout = context.Set.GetOutputFor(input);
-                var checkInput = new Task<bool>(() =>
+                foreach (TransactionConsensusRule rule in this.transactionConsensusRules)
                 {
-                    var checker = new TransactionChecker(transaction, inputIndexCopy, txout.Value, txData);
-                    var scriptEvaluationContext = new ScriptEvaluationContext(this.Parent.Network)
-                    {
-                        ScriptVerify = context.Flags.ScriptFlags
-                    };
-                    return scriptEvaluationContext.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
-                });
-                checkInput.Start(context.TaskScheduler);
-                context.CheckInputs.Add(checkInput);
-            }
-
-            return Task.CompletedTask;
-        }
-
-        private Task AddCalculatedFee(Transaction transaction, RuleContext context)
-        {
-            if (transaction.IsCoinBase)
-                return Task.CompletedTask;
-
-            context.Fees += context.Set.GetValueIn(transaction) - transaction.TotalOut;
-
-            return Task.CompletedTask;
-        }
-
-        private Task CheckTransactionFinalRunAsync(Transaction transaction, RuleContext context)
-        {
-            if (transaction.IsCoinBase)
-                return Task.CompletedTask;
-
-            ChainedBlock index = context.BlockValidationContext.ChainedBlock;
-            DeploymentFlags flags = context.Flags;
-            UnspentOutputSet view = context.Set;
-
-            if (!view.HaveInputs(transaction))
-            {
-                this.Logger.LogTrace("(-)[BAD_TX_NO_INPUT]");
-                ConsensusErrors.BadTransactionMissingInput.Throw();
-            }
-
-            var prevheights = new int[transaction.Inputs.Count];
-            // Check that transaction is BIP68 final.
-            // BIP68 lock checks (as opposed to nLockTime checks) must
-            // be in ConnectBlock because they require the UTXO set.
-            for (int j = 0; j < transaction.Inputs.Count; j++)
-            {
-                prevheights[j] = (int)view.AccessCoins(transaction.Inputs[j].PrevOut.Hash).Height;
-            }
-
-            if (!transaction.CheckSequenceLocks(prevheights, index, flags.LockTimeFlags))
-            {
-                this.Logger.LogTrace("(-)[BAD_TX_NON_FINAL]");
-                ConsensusErrors.BadTransactionNonFinal.Throw();
+                    rule.Initialize();
+                    rule.Logger = this.Logger;
+                    rule.Parent = this.Parent;
+                    rule.Transaction = transaction;
+                    rule.RunAsync(context);
+                }
             }
 
             return Task.CompletedTask;

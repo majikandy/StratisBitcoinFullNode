@@ -4,7 +4,9 @@ using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
+using Stratis.Bitcoin.Features.Consensus;
 using Stratis.Bitcoin.Features.Consensus.CoinViews;
+using Stratis.Bitcoin.Features.Consensus.Rules;
 using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules
@@ -37,6 +39,24 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules
         /// <returns>The execution task.</returns>
         public abstract Task RunAsync(RuleContext context);
     }
+
+    public abstract class TransactionConsensusRule : ConsensusRule
+    {
+        public Transaction Transaction { get; set; }
+    }
+
+    //TODO before PR merge
+    //public abstract class PosTransactionConsensusRule : ConsensusRule
+    //{
+    //    public PowConsensusOptions ConsensusOptions { get; private set; }
+
+    //    public override void Initialize()
+    //    {
+    //        this.ConsensusOptions = this.Parent.Network.Consensus.Option<PosConsensusOptions>();
+    //    }
+
+    //    public Transaction Transaction { get; set; }
+    //}
 
     /// <summary>
     /// Provide additional information about a consensus rule that can be used by the rule engine.

@@ -16,6 +16,7 @@ using Stratis.Bitcoin.Features.Consensus.CoinViews;
 using Stratis.Bitcoin.Features.Consensus.Interfaces;
 using Stratis.Bitcoin.Features.Consensus.Rules;
 using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
+using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Stratis.Bitcoin.Interfaces;
 using Stratis.Bitcoin.P2P.Protocol.Payloads;
 using Stratis.Bitcoin.Utilities;
@@ -290,7 +291,14 @@ namespace Stratis.Bitcoin.Features.Consensus
                     // rules that require the store to be loaded (coinview)
                     new LoadCoinviewRule(),
                     new TransactionDuplicationActivationRule(), // implements BIP30
-                    new PowTransactionRelativeLocktimeAndSignatureOperationCostRule() // implements BIP68
+                    new TransactionRulesRunner(
+                        new TransactionFinalRule(), // implements BIP68
+                        new CheckNotExceedsMaxSigOpsRule(),
+                        new CheckInputsRule(),
+                        new AddCalculatedFeesRule(),
+                        new BuildCheckInputsRule(),
+                        new PowUpdateCoinViewRule()
+                        ) 
                 };
             }
         }
