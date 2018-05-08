@@ -117,7 +117,5 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 
             return 0;
         }
-
-
     }
 }

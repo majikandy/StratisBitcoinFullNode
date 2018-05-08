@@ -8,6 +8,7 @@ using Stratis.Bitcoin.Base.Deployments;
 using Stratis.Bitcoin.Features.Consensus.CoinViews;
 using Stratis.Bitcoin.Features.Consensus.Rules;
 using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
+using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Stratis.Bitcoin.Features.Consensus.Tests.CoinViews;
 using Stratis.Bitcoin.Utilities;
 using Xunit;
@@ -124,7 +125,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
         {
             try
             {
-                var rule = new TransactionRulesRunner()
+                var rule = new TransactionRulesRunner(new TransactionFinalRule())
                 {
                     Logger = new Mock<ILogger>().Object,
                     Parent = new PowConsensusRules(Network.RegTest, new Mock<ILoggerFactory>().Object, new Mock<IDateTimeProvider>().Object, new ConcurrentChain(), new NodeDeployments(Network.RegTest, new ConcurrentChain()), new ConsensusSettings(), new Mock<ICheckpoints>().Object, new Mock<CoinView>().Object, null)

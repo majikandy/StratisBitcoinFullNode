@@ -7,14 +7,8 @@ using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 {
-    /// <summary>
-    /// Checks each transaction conforms to BIP68 Final (Time and Blockheight checks) - see https://github.com/bitcoin/bips/blob/master/bip-0068.mediawiki
-    /// And checks signature operation costs
-    /// Then updates the coinview with each transaction.
-    /// With the addition of coinview update and maturity variations for Proof of Stake.
-    /// </summary>
     [ExecutionRule]
-    public partial class PosTransactionRelativeLocktimeAndSignatureOperationCostRule : TransactionRulesRunner
+    public class PosTransactionRelativeLocktimeAndSignatureOperationCostRule : TransactionRulesRunner
     {
         /// <summary>Consensus options.</summary>
         private PosConsensusOptions consensusOptions;
@@ -41,20 +35,54 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             {
                 this.Parent.PerformanceCounter.AddProcessedTransactions(1);
 
-                if (!tx.IsCoinStake)
+                if (!tx.IsCoinBase && !tx.IsCoinStake) 
                 {
                     this.TransactionFinalityCheck(tx, context);
                 }
 
                 this.MaxSigOpsCostCheck(sigOpsCost, tx, view, flags);
 
-                if (!tx.IsCoinStake)
+                if (!tx.IsCoinBase && !tx.IsCoinStake)
                 {
                     this.CalculateFees(context, tx, view);
                     this.AddCheckInputsToContext(context, tx, view, flags);
                 }
 
                 this.UpdateCoinView(context, tx);
+            }
+
+            return Task.CompletedTask;
+        }
+
+        private Task TransactionFinalityCheck(Transaction tx, RuleContext context)
+        {
+            Block block = context.BlockValidationContext.Block;
+            ChainedBlock index = context.BlockValidationContext.ChainedBlock;
+            DeploymentFlags flags = context.Flags;
+            UnspentOutputSet view = context.Set;
+
+            //TODO before PR - this logic can be pulled out in the Pow Base and just called here
+            int[] prevheights;
+
+            if (!view.HaveInputs(tx))
+            {
+                this.Logger.LogTrace("(-)[BAD_TX_NO_INPUT]");
+                ConsensusErrors.BadTransactionMissingInput.Throw();
+            }
+
+            prevheights = new int[tx.Inputs.Count];
+            // Check that transaction is BIP68 final.
+            // BIP68 lock checks (as opposed to nLockTime checks) must
+            // be in ConnectBlock because they require the UTXO set.
+            for (int j = 0; j < tx.Inputs.Count; j++)
+            {
+                prevheights[j] = (int) view.AccessCoins(tx.Inputs[j].PrevOut.Hash).Height;
+            }
+
+            if (!tx.CheckSequenceLocks(prevheights, index, flags.LockTimeFlags))
+            {
+                this.Logger.LogTrace("(-)[BAD_TX_NON_FINAL]");
+                ConsensusErrors.BadTransactionNonFinal.Throw();
             }
 
             return Task.CompletedTask;
@@ -136,43 +164,6 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             }
 
             this.Logger.LogTrace("(-)");
-        }
-    }
-
-    public partial class PosTransactionRelativeLocktimeAndSignatureOperationCostRule
-    {
-        private Task TransactionFinalityCheck(Transaction tx, RuleContext context)
-        {
-            Block block = context.BlockValidationContext.Block;
-            ChainedBlock index = context.BlockValidationContext.ChainedBlock;
-            DeploymentFlags flags = context.Flags;
-            UnspentOutputSet view = context.Set;
-
-            //TODO before PR - this logic can be pulled out in the Pow Base and just called here
-            int[] prevheights;
-
-            if (!view.HaveInputs(tx))
-            {
-                this.Logger.LogTrace("(-)[BAD_TX_NO_INPUT]");
-                ConsensusErrors.BadTransactionMissingInput.Throw();
-            }
-
-            prevheights = new int[tx.Inputs.Count];
-            // Check that transaction is BIP68 final.
-            // BIP68 lock checks (as opposed to nLockTime checks) must
-            // be in ConnectBlock because they require the UTXO set.
-            for (int j = 0; j < tx.Inputs.Count; j++)
-            {
-                prevheights[j] = (int) view.AccessCoins(tx.Inputs[j].PrevOut.Hash).Height;
-            }
-
-            if (!tx.CheckSequenceLocks(prevheights, index, flags.LockTimeFlags))
-            {
-                this.Logger.LogTrace("(-)[BAD_TX_NON_FINAL]");
-                ConsensusErrors.BadTransactionNonFinal.Throw();
-            }
-
-            return Task.CompletedTask;
         }
     }
 }
