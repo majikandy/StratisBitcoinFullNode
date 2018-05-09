@@ -66,7 +66,7 @@ namespace NBitcoin
         {
             this.SetNull();
         }
-        
+
         public static BlockHeader Load(byte[] hex, Network network)
         {
             if (hex == null)
@@ -76,7 +76,7 @@ namespace NBitcoin
                 throw new ArgumentNullException(nameof(network));
 
             BlockHeader blockHeader = network.Consensus.ConsensusFactory.CreateBlockHeader();
-            blockHeader.ReadWrite(hex, consensusFactory: network.Consensus.ConsensusFactory);
+            blockHeader.ReadWrite(hex, network: network);
 
             return blockHeader;
         }
@@ -170,7 +170,7 @@ namespace NBitcoin
         /// <param name="now">The expected date.</param>
         /// <param name="consensus">Consensus.</param>
         /// <param name="prev">Previous block.</param>
-        public void UpdateTime(DateTimeOffset now, Consensus consensus, ChainedBlock prev)
+        public void UpdateTime(DateTimeOffset now, Consensus consensus, ChainedHeader prev)
         {
             DateTimeOffset nOldTime = this.BlockTime;
             DateTimeOffset mtp = prev.GetMedianTimePast() + TimeSpan.FromSeconds(1);
@@ -190,19 +190,19 @@ namespace NBitcoin
         /// <param name="now">The expected date.</param>
         /// <param name="network">Network.</param>
         /// <param name="prev">Previous block.</param>
-        public void UpdateTime(DateTimeOffset now, Network network, ChainedBlock prev)
+        public void UpdateTime(DateTimeOffset now, Network network, ChainedHeader prev)
         {
             this.UpdateTime(now, network.Consensus, prev);
         }
 
-        public Target GetWorkRequired(Network network, ChainedBlock prev)
+        public Target GetWorkRequired(Network network, ChainedHeader prev)
         {
             return this.GetWorkRequired(network.Consensus, prev);
         }
 
-        public Target GetWorkRequired(Consensus consensus, ChainedBlock prev)
+        public Target GetWorkRequired(Consensus consensus, ChainedHeader prev)
         {
-            return new ChainedBlock(this, this.GetHash(), prev).GetWorkRequired(consensus);
+            return new ChainedHeader(this, this.GetHash(), prev).GetWorkRequired(consensus);
         }
     }
 
@@ -279,7 +279,7 @@ namespace NBitcoin
             // Block's hash is his header's hash.
             return this.header.GetHash();
         }
-        
+
         public Transaction AddTransaction(Transaction tx)
         {
             this.Transactions.Add(tx);
@@ -337,7 +337,7 @@ namespace NBitcoin
         {
             return this.Header.HashMerkleRoot == GetMerkleRoot().Hash;
         }
-        
+
         public static Block ParseJson(Network network, string json)
         {
             var formatter = new BlockExplorerFormatter();
@@ -361,30 +361,14 @@ namespace NBitcoin
 
         public static Block Parse(string hex, Network network)
         {
-            if (network == null)
-                throw new ArgumentNullException(nameof(network));
-
-            return Parse(hex, network.Consensus.ConsensusFactory);
-        }
-
-        public static Block Parse(string hex, Consensus consensus)
-        {
-            if (consensus == null)
-                throw new ArgumentNullException(nameof(consensus));
-
-            return Parse(hex, consensus.ConsensusFactory);
-        }
-
-        public static Block Parse(string hex, ConsensusFactory consensusFactory)
-        {
             if (string.IsNullOrEmpty(hex))
                 throw new ArgumentNullException(nameof(hex));
 
-            if (consensusFactory == null)
-                throw new ArgumentNullException(nameof(consensusFactory));
+            if (network == null)
+                throw new ArgumentNullException(nameof(network));
 
-            Block block = consensusFactory.CreateBlock();
-            block.ReadWrite(Encoders.Hex.DecodeData(hex), consensusFactory: consensusFactory);
+            Block block = network.Consensus.ConsensusFactory.CreateBlock();
+            block.ReadWrite(Encoders.Hex.DecodeData(hex), network: network);
 
             return block;
         }
@@ -397,31 +381,8 @@ namespace NBitcoin
             if (network == null)
                 throw new ArgumentNullException(nameof(network));
 
-            return Load(hex, network.Consensus.ConsensusFactory);
-        }
-
-        public static Block Load(byte[] hex, Consensus consensus)
-        {
-
-            if (hex == null)
-                throw new ArgumentNullException(nameof(hex));
-
-            if (consensus == null)
-                throw new ArgumentNullException(nameof(consensus));
-
-            return Load(hex, consensus.ConsensusFactory);
-        }
-
-        public static Block Load(byte[] hex, ConsensusFactory consensusFactory)
-        {
-            if (hex == null)
-                throw new ArgumentNullException(nameof(hex));
-
-            if (consensusFactory == null)
-                throw new ArgumentNullException(nameof(consensusFactory));
-
-            Block block = consensusFactory.CreateBlock();
-            block.ReadWrite(hex, consensusFactory: consensusFactory);
+            Block block = network.Consensus.ConsensusFactory.CreateBlock();
+            block.ReadWrite(hex, network: network);
 
             return block;
         }

@@ -30,17 +30,18 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
         private readonly INetworkPeerFactory networkPeerFactory;
 
         private int[] ports;
-        private INodeRunner runner;
+        private NodeRunner runner;
         private readonly NetworkCredential creds;
         private List<Transaction> transactions = new List<Transaction>();
         private HashSet<OutPoint> locked = new HashSet<OutPoint>();
         private Money fee = Money.Coins(0.0001m);
         private object lockObject = new object();
 
-        public string Folder { get; }
-
         /// <summary>Location of the data directory for the node.</summary>
-        public string DataFolder { get; }
+        public string DataFolder
+        {
+            get { return this.runner.DataFolder; }
+        }
 
         public IPEndPoint Endpoint { get { return new IPEndPoint(IPAddress.Parse("127.0.0.1"), this.ports[0]); } }
 
@@ -48,16 +49,14 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
 
         public NodeConfigParameters ConfigParameters { get; } = new NodeConfigParameters();
 
-        public CoreNode(string folder, INodeRunner runner, NodeBuilder builder, Network network, string configfile = "bitcoin.conf")
+        public CoreNode(NodeRunner runner, NodeBuilder builder, Network network, string configfile)
         {
             this.runner = runner;
-            this.Folder = folder;
-            this.DataFolder = Path.Combine(folder, "data");
 
             this.State = CoreNodeState.Stopped;
             var pass = Encoders.Hex.EncodeData(RandomUtils.GetBytes(20));
             this.creds = new NetworkCredential(pass, pass);
-            this.Config = Path.Combine(this.DataFolder, configfile);
+            this.Config = Path.Combine(this.runner.DataFolder, configfile);
             this.ConfigParameters.Import(builder.ConfigParameters);
             this.ports = new int[2];
             this.FindPorts(this.ports);
@@ -119,7 +118,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
 
         public void Start()
         {
-            NodeBuilder.CreateDataFolder(this.DataFolder);
+            NodeBuilder.CreateDataFolder(this.runner.DataFolder);
 
             var config = new NodeConfigParameters();
             config.Add("regtest", "1");
@@ -138,7 +137,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
 
             lock (this.lockObject)
             {
-                this.runner.Start(this.DataFolder);
+                this.runner.Start();
                 this.State = CoreNodeState.Starting;
             }
 
@@ -360,19 +359,19 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
         /// <param name="hashStop">The location until which it synchronize.</param>
         /// <param name="cancellationToken"></param>
         /// <returns></returns>
-        private IEnumerable<ChainedBlock> SynchronizeChain(INetworkPeer peer, ChainBase chain, uint256 hashStop = null, CancellationToken cancellationToken = default(CancellationToken))
+        private IEnumerable<ChainedHeader> SynchronizeChain(INetworkPeer peer, ChainBase chain, uint256 hashStop = null, CancellationToken cancellationToken = default(CancellationToken))
         {
-            ChainedBlock oldTip = chain.Tip;
-            List<ChainedBlock> headers = this.GetHeadersFromFork(peer, oldTip, hashStop, cancellationToken).ToList();
+            ChainedHeader oldTip = chain.Tip;
+            List<ChainedHeader> headers = this.GetHeadersFromFork(peer, oldTip, hashStop, cancellationToken).ToList();
             if (headers.Count == 0)
-                return new ChainedBlock[0];
+                return new ChainedHeader[0];
 
-            ChainedBlock newTip = headers[headers.Count - 1];
+            ChainedHeader newTip = headers[headers.Count - 1];
 
             if (newTip.Height <= oldTip.Height)
                 throw new ProtocolException("No tip should have been recieved older than the local one");
 
-            foreach (ChainedBlock header in headers)
+            foreach (ChainedHeader header in headers)
             {
                 if (!header.Validate(peer.Network))
                 {
@@ -394,7 +393,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
                 throw new InvalidOperationException("Invalid Node state, needed=" + peerState + ", current= " + this.State);
         }
 
-        public IEnumerable<ChainedBlock> GetHeadersFromFork(INetworkPeer peer, ChainedBlock currentTip, uint256 hashStop = null, CancellationToken cancellationToken = default(CancellationToken))
+        public IEnumerable<ChainedHeader> GetHeadersFromFork(INetworkPeer peer, ChainedHeader currentTip, uint256 hashStop = null, CancellationToken cancellationToken = default(CancellationToken))
         {
             this.AssertStateAsync(peer, NetworkPeerState.HandShaked, cancellationToken).GetAwaiter().GetResult();
 
@@ -451,7 +450,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
                             if (header.HashPrevBlock != currentTip.HashBlock)
                             {
                                 int reorgDepth = 0;
-                                ChainedBlock tempCurrentTip = currentTip;
+                                ChainedHeader tempCurrentTip = currentTip;
                                 while (reorgDepth != acceptMaxReorgDepth && tempCurrentTip != null && header.HashPrevBlock != tempCurrentTip.HashBlock)
                                 {
                                     reorgDepth++;
@@ -465,7 +464,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
                             if (header.HashPrevBlock == currentTip.HashBlock)
                             {
                                 isOurs = true;
-                                currentTip = new ChainedBlock(header, hash, currentTip);
+                                currentTip = new ChainedHeader(header, hash, currentTip);
 
                                 yield return currentTip;
 
@@ -527,7 +526,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
                 if (broadcast)
                 {
                     uint256 blockHash = block.GetHash();
-                    var newChain = new ChainedBlock(block.Header, blockHash, fullNode.Chain.Tip);
+                    var newChain = new ChainedHeader(block.Header, blockHash, fullNode.Chain.Tip);
                     var oldTip = fullNode.Chain.SetTip(newChain);
                     fullNode.ConsensusLoop().Puller.InjectBlock(blockHash, new DownloadedBlock { Length = block.GetSerializedSize(), Block = block }, CancellationToken.None);
 
@@ -540,7 +539,7 @@ namespace Stratis.Bitcoin.IntegrationTests.EnvironmentMockUpHelpers
                     //    if (blockResult.Error == null)
                     //    {
                     //        fullNode.ChainBehaviorState.ConsensusTip = fullNode.ConsensusLoop.Tip;
-                    //        //if (fullNode.Chain.Tip.HashBlock == blockResult.ChainedBlock.HashBlock)
+                    //        //if (fullNode.Chain.Tip.HashBlock == blockResult.ChainedHeader.HashBlock)
                     //        //{
                     //        //    var unused = cache.FlushAsync();
                     //        //}
