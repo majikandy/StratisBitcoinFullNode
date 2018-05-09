@@ -292,7 +292,7 @@ namespace Stratis.Bitcoin.Features.Consensus
                     new LoadCoinviewRule(),
                     new TransactionDuplicationActivationRule(), // implements BIP30
                     new TransactionRulesRunner(
-                        new TransactionFinalRule(), // implements BIP68
+                        new PowTransactionFinalRule(), // implements BIP68
                         new CheckNotExceedsMaxSigOpsRule(),
                         new CheckInputsRule(),
                         new AddCalculatedFeesRule(),
@@ -341,7 +341,14 @@ namespace Stratis.Bitcoin.Features.Consensus
                     // rules that require the store to be loaded (coinview)
                     new LoadCoinviewRule(),
                     new TransactionDuplicationActivationRule(), // implements BIP30
-                    new PosTransactionRelativeLocktimeAndSignatureOperationCostRule() // implements BIP68
+                    new TransactionRulesRunner(
+                        new PosTransactionFinalRule(), // implements BIP68
+                        new CheckNotExceedsMaxSigOpsRule(),
+                        new CheckInputsRule(),
+                        new AddCalculatedFeesRule(),
+                        new BuildCheckInputsRule(),
+                        new PowUpdateCoinViewRule()
+                    )
                 };
             }
         }
