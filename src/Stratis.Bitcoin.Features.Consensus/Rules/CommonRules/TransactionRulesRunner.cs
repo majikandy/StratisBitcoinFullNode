@@ -40,10 +40,10 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
                 foreach (TransactionConsensusRule rule in this.transactionConsensusRules)
                 {
-                    rule.Initialize();
                     rule.Logger = this.Logger;
                     rule.Parent = this.Parent;
                     rule.Transaction = transaction;
+                    rule.Initialize();
                     rule.RunAsync(context);
                 }
             }
@@ -91,7 +91,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
         {
             this.Logger.LogTrace("()");
 
-            ChainedBlock index = context.BlockValidationContext.ChainedBlock;
+            ChainedHeader index = context.BlockValidationContext.ChainedHeader;
             UnspentOutputSet view = context.Set;
 
             view.Update(transaction, index.Height);
@@ -129,7 +129,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
                 return Task.CompletedTask;
 
             UnspentOutputSet inputs = context.Set;
-            int spendHeight = context.BlockValidationContext.ChainedBlock.Height;
+            int spendHeight = context.BlockValidationContext.ChainedHeader.Height;
 
             //TODO before Merge - share this code between the rules and remove the call inside MempoolValidator
             this.Logger.LogTrace("({0}:{1})", nameof(spendHeight), spendHeight);

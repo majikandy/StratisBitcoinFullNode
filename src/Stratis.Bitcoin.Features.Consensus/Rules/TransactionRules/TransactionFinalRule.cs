@@ -22,7 +22,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 
         private void CheckTransactionFinal(RuleContext context)
         {
-            ChainedBlock index = context.BlockValidationContext.ChainedBlock;
+            ChainedHeader index = context.BlockValidationContext.ChainedHeader;
             DeploymentFlags flags = context.Flags;
             UnspentOutputSet view = context.Set;
 

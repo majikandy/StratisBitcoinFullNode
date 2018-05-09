@@ -45,7 +45,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests
             this.rules.ElementAt(18).Should().BeOfType<PosBlockSignatureRule>();
             this.rules.ElementAt(19).Should().BeOfType<LoadCoinviewRule>();
             this.rules.ElementAt(20).Should().BeOfType<TransactionDuplicationActivationRule>();
-            this.rules.ElementAt(21).Should().BeOfType<PosTransactionRelativeLocktimeAndSignatureOperationCostRule>();
+            this.rules.ElementAt(21).Should().BeOfType<TransactionRulesRunner>();
         }
     }
 }

@@ -294,7 +294,7 @@ namespace Stratis.Bitcoin.Features.Consensus
                     new TransactionRulesRunner(
                         new PowTransactionFinalRule(), // implements BIP68
                         new CheckNotExceedsMaxSigOpsRule(),
-                        new CheckInputsRule(),
+                        new PowCheckInputsRule(),
                         new AddCalculatedFeesRule(),
                         new BuildCheckInputsRule(),
                         new PowUpdateCoinViewRule()
@@ -344,7 +344,7 @@ namespace Stratis.Bitcoin.Features.Consensus
                     new TransactionRulesRunner(
                         new PosTransactionFinalRule(), // implements BIP68
                         new CheckNotExceedsMaxSigOpsRule(),
-                        new CheckInputsRule(),
+                        new PosCheckInputsRule(),
                         new AddCalculatedFeesRule(),
                         new BuildCheckInputsRule(),
                         new PowUpdateCoinViewRule()

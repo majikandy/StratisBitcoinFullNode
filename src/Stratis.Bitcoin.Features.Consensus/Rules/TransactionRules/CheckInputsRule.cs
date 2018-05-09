@@ -5,14 +5,9 @@ using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
-    public class CheckInputsRule : TransactionConsensusRule
+    public abstract class CheckInputsRule : TransactionConsensusRule
     {
         public PowConsensusOptions ConsensusOptions { get; set; }
-
-        public override void Initialize()
-        {
-            this.ConsensusOptions = this.Parent.Network.Consensus.Option<PowConsensusOptions>();
-        }
 
         public override Task RunAsync(RuleContext context)
         {
@@ -20,7 +15,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
                 return Task.CompletedTask;
 
             UnspentOutputSet inputs = context.Set;
-            int spendHeight = context.BlockValidationContext.ChainedBlock.Height;
+            int spendHeight = context.BlockValidationContext.ChainedHeader.Height;
 
             //TODO before Merge - share this code between the rules and remove the call inside MempoolValidator
             this.Logger.LogTrace("({0}:{1})", nameof(spendHeight), spendHeight);
@@ -78,12 +73,12 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
         /// <param name="coins">UTXOs to check the maturity of.</param>
         /// <param name="spendHeight">Height at which coins are attempted to be spent.</param>
         /// <exception cref="ConsensusErrors.BadTransactionPrematureCoinbaseSpending">Thrown if transaction tries to spend coins that are not mature.</exception>
-        protected virtual void CheckMaturity(UnspentOutputs coins, int spendHeight)
+        private void CheckMaturity(UnspentOutputs coins, int spendHeight)
         {
             this.Logger.LogTrace("({0}:'{1}/{2}',{3}:{4})", nameof(coins), coins.TransactionId, coins.Height, nameof(spendHeight), spendHeight);
 
             // If prev is coinbase, check that it's matured
-            if (coins.IsCoinbase)
+            if (CoinsShouldBeChecked(coins))
             {
                 if ((spendHeight - coins.Height) < this.ConsensusOptions.CoinbaseMaturity)
                 {
@@ -96,6 +91,8 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
             this.Logger.LogTrace("(-)");
         }
 
+        protected abstract bool CoinsShouldBeChecked(UnspentOutputs coins);
+        
         /// <summary>
         /// Checks if value is in range from 0 to <see cref="ConsensusOptions.MaxMoney"/>.
         /// </summary>
@@ -104,6 +101,32 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
         private bool MoneyRange(long value)
         {
             return ((value >= 0) && (value <= this.ConsensusOptions.MaxMoney));
+        }
+    }
+
+    public class PosCheckInputsRule : CheckInputsRule
+    {
+        public override void Initialize()
+        {
+            this.ConsensusOptions = this.Parent.Network.Consensus.Option<PosConsensusOptions>();
+        }
+
+        protected override bool CoinsShouldBeChecked(UnspentOutputs coins)
+        {
+            return coins.IsCoinstake;
+        }
+    }
+
+    public class PowCheckInputsRule : CheckInputsRule
+    {
+        public override void Initialize()
+        {
+            this.ConsensusOptions = this.Parent.Network.Consensus.Option<PowConsensusOptions>();
+        }
+
+        protected override bool CoinsShouldBeChecked(UnspentOutputs coins)
+        {
+            return coins.IsCoinbase;
         }
     }
 }

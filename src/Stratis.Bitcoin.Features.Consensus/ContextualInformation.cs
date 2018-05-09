@@ -61,7 +61,7 @@ namespace Stratis.Bitcoin.Features.Consensus
 
         public UnspentOutputSet Set { get; set; }
 
-        public Money Fees { get; set; } = Money.Zero;
+        public Money TotalBlockFees { get; set; } = Money.Zero;
 
         public List<Task<bool>> CheckInputs { get; set; } = new List<Task<bool>>();
 

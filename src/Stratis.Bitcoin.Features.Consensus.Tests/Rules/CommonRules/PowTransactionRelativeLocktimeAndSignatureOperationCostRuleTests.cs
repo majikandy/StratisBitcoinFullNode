@@ -75,7 +75,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
             {
                 Transactions = this.transactions
             };
-            this.ruleContext.BlockValidationContext.ChainedBlock = new ChainedBlock(new BlockHeader(), new uint256("bcd7d5de8d3bcc7b15e7c8e5fe77c0227cdfa6c682ca13dcf4910616f10fdd06"), HeightOfBlockchain);
+            this.ruleContext.BlockValidationContext.ChainedHeader = new ChainedHeader(new BlockHeader(), new uint256("bcd7d5de8d3bcc7b15e7c8e5fe77c0227cdfa6c682ca13dcf4910616f10fdd06"), HeightOfBlockchain);
             this.ruleContext.Flags = new DeploymentFlags();
 
             //TODO: COINBASE TRANSACTION REMOVED FROM TEST AT THE MOMENT - SO CANT BE ADDED HERE UNLESS NOT NULL
@@ -125,7 +125,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
         {
             try
             {
-                var rule = new TransactionRulesRunner(new TransactionFinalRule())
+                var rule = new TransactionRulesRunner(new PowTransactionFinalRule())
                 {
                     Logger = new Mock<ILogger>().Object,
                     Parent = new PowConsensusRules(Network.RegTest, new Mock<ILoggerFactory>().Object, new Mock<IDateTimeProvider>().Object, new ConcurrentChain(), new NodeDeployments(Network.RegTest, new ConcurrentChain()), new ConsensusSettings(), new Mock<ICheckpoints>().Object, new Mock<CoinView>().Object, null)

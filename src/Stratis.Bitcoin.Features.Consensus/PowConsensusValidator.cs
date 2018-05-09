@@ -76,7 +76,7 @@ namespace Stratis.Bitcoin.Features.Consensus
 
             if (!context.SkipValidation)
             {
-                this.CheckBlockReward(context, context.Fees, index.Height, block);
+                this.CheckBlockReward(context, context.TotalBlockFees, index.Height, block);
 
                 bool passed = context.CheckInputs.All(c => c.GetAwaiter().GetResult());
                 if (!passed)
