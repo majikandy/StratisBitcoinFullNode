@@ -125,7 +125,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
         {
             try
             {
-                var rule = new TransactionRulesRunner(new PowTransactionFinalRule())
+                var rule = new TransactionRulesRunner(new TransactionFinalRule())
                 {
                     Logger = new Mock<ILogger>().Object,
                     Parent = new PowConsensusRules(Network.RegTest, new Mock<ILoggerFactory>().Object, new Mock<IDateTimeProvider>().Object, new ConcurrentChain(), new NodeDeployments(Network.RegTest, new ConcurrentChain()), new ConsensusSettings(), new Mock<ICheckpoints>().Object, new Mock<CoinView>().Object, null)

@@ -1,26 +1,26 @@
 ﻿using System.Threading.Tasks;
-using Microsoft.Extensions.Logging;
 using NBitcoin;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
-    public class BuildCheckInputsRule : TransactionConsensusRule
+    [ExecutionRule]
+    public class EvaluateScriptsRule : ConsensusRule
     {
         public override Task RunAsync(RuleContext context)
         {
-            if (this.Transaction.IsCoinBase)
+            if (context.CurrentTransaction.IsCoinBase)
                 return Task.CompletedTask;
 
-            var txData = new PrecomputedTransactionData(this.Transaction);
-            for (int inputIndex = 0; inputIndex < this.Transaction.Inputs.Count; inputIndex++)
+            var txData = new PrecomputedTransactionData(context.CurrentTransaction);
+            for (int inputIndex = 0; inputIndex < context.CurrentTransaction.Inputs.Count; inputIndex++)
             {
                 this.Parent.PerformanceCounter.AddProcessedInputs(1);
-                TxIn input = this.Transaction.Inputs[inputIndex];
+                TxIn input = context.CurrentTransaction.Inputs[inputIndex];
                 int inputIndexCopy = inputIndex;
                 TxOut txout = context.Set.GetOutputFor(input);
                 var checkInput = new Task<bool>(() =>
                 {
-                    var checker = new TransactionChecker(this.Transaction, inputIndexCopy, txout.Value, txData);
+                    var checker = new TransactionChecker(context.CurrentTransaction, inputIndexCopy, txout.Value, txData);
                     var scriptEvaluationContext = new ScriptEvaluationContext(this.Parent.Network)
                     {
                         ScriptVerify = context.Flags.ScriptFlags

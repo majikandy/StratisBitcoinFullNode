@@ -127,40 +127,9 @@ namespace Stratis.Bitcoin.Features.Consensus
             this.logger.LogTrace("(-)");
         }
 
-        /// <inheritdoc />
-        protected override void UpdateCoinView(RuleContext context, Transaction transaction)
-        {
-            this.logger.LogTrace("()");
-
-            UnspentOutputSet view = context.Set;
-
-            if (transaction.IsCoinStake)
-                context.Stake.TotalCoinStakeValueIn = view.GetValueIn(transaction);
-
-            base.UpdateCoinView(context, transaction);
-
-            this.logger.LogTrace("(-)");
-        }
 
         /// <inheritdoc />
-        protected override void CheckMaturity(UnspentOutputs coins, int spendHeight)
-        {
-            this.logger.LogTrace("({0}:'{1}/{2}',{3}:{4})", nameof(coins), coins.TransactionId, coins.Height, nameof(spendHeight), spendHeight);
-
-            base.CheckMaturity(coins, spendHeight);
-
-            if (coins.IsCoinstake)
-            {
-                if ((spendHeight - coins.Height) < this.consensusOptions.CoinbaseMaturity)
-                {
-                    this.logger.LogTrace("Coinstake transaction height {0} spent at height {1}, but maturity is set to {2}.", coins.Height, spendHeight, this.consensusOptions.CoinbaseMaturity);
-                    this.logger.LogTrace("(-)[COINSTAKE_PREMATURE_SPENDING]");
-                    ConsensusErrors.BadTransactionPrematureCoinstakeSpending.Throw();
-                }
-            }
-
-            this.logger.LogTrace("(-)");
-        }
+       
 
         /// <summary>
         /// Checks and computes stake.

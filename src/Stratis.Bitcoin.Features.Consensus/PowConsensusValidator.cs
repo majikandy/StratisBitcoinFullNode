@@ -91,23 +91,6 @@ namespace Stratis.Bitcoin.Features.Consensus
         }
 
         /// <summary>
-        /// Updates context's UTXO set.
-        /// </summary>
-        /// <param name="context">Context that contains variety of information regarding blocks validation and execution.</param>
-        /// <param name="transaction">Transaction which outputs will be added to the context's <see cref="UnspentOutputSet"/> and which inputs will be removed from it.</param>
-        protected virtual void UpdateCoinView(RuleContext context, Transaction transaction)
-        {
-            this.logger.LogTrace("()");
-
-            ChainedHeader index = context.BlockValidationContext.ChainedHeader;
-            UnspentOutputSet view = context.Set;
-
-            view.Update(transaction, index.Height);
-
-            this.logger.LogTrace("(-)");
-        }
-
-        /// <summary>
         /// Verifies that block has correct coinbase transaction with appropriate reward and fees summ.
         /// </summary>
         /// <param name="context">Context that contains variety of information regarding blocks validation and execution.</param>

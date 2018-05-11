@@ -4,7 +4,7 @@ using Stratis.Bitcoin.Base.Deployments;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
-    public class CheckNotExceedsMaxSigOpsRule : TransactionConsensusRule
+    public class CheckNotExceedsMaxSigOpsRule : ConsensusRule
     {
         public PowConsensusOptions ConsensusOptions { get; set; }
 
@@ -19,7 +19,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
             // * legacy (always),
             // * p2sh (when P2SH enabled in flags and excludes coinbase),
             // * witness (when witness enabled in flags and excludes coinbase).
-            context.SigOpsCost += this.GetTransactionSignatureOperationCost(this.Transaction, context.Set, context.Flags);
+            context.SigOpsCost += this.GetTransactionSignatureOperationCost(context.CurrentTransaction, context.Set, context.Flags);
             if (context.SigOpsCost > this.ConsensusOptions.MaxBlockSigopsCost)
                 ConsensusErrors.BadBlockSigOps.Throw();
 

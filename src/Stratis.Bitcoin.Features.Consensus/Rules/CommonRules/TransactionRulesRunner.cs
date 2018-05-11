@@ -14,12 +14,12 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
     [ExecutionRule]
     public class TransactionRulesRunner : ConsensusRule
     {
-        private readonly IEnumerable<TransactionConsensusRule> transactionConsensusRules;
+        private readonly IEnumerable<ConsensusRule> transactionConsensusRules;
 
         /// <summary>Consensus options.</summary>
         public PowConsensusOptions ConsensusOptions { get; private set; }
 
-        public TransactionRulesRunner(params TransactionConsensusRule[] transactionConsensusRules)
+        public TransactionRulesRunner(params ConsensusRule[] transactionConsensusRules)
         {
             this.transactionConsensusRules = transactionConsensusRules;
         }
@@ -38,11 +38,11 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             {
                 this.Parent.PerformanceCounter.AddProcessedTransactions(1);
 
-                foreach (TransactionConsensusRule rule in this.transactionConsensusRules)
+                foreach (var rule in this.transactionConsensusRules)
                 {
                     rule.Logger = this.Logger;
                     rule.Parent = this.Parent;
-                    rule.Transaction = transaction;
+                    context.CurrentTransaction = transaction;
                     rule.Initialize();
                     rule.RunAsync(context);
                 }

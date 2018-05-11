@@ -292,13 +292,14 @@ namespace Stratis.Bitcoin.Features.Consensus
                     new LoadCoinviewRule(),
                     new TransactionDuplicationActivationRule(), // implements BIP30
                     new TransactionRulesRunner(
-                        new PowTransactionFinalRule(), // implements BIP68
+                        new TransactionFinalRule(), // implements BIP68
                         new CheckNotExceedsMaxSigOpsRule(),
                         new PowCheckInputsRule(),
                         new AddCalculatedFeesRule(),
-                        new BuildCheckInputsRule(),
                         new PowUpdateCoinViewRule()
-                        ) 
+                        ),
+                    new EvaluateScriptsRule(),
+
                 };
             }
         }
@@ -342,11 +343,11 @@ namespace Stratis.Bitcoin.Features.Consensus
                     new LoadCoinviewRule(),
                     new TransactionDuplicationActivationRule(), // implements BIP30
                     new TransactionRulesRunner(
-                        new PosTransactionFinalRule(), // implements BIP68
+                        new TransactionFinalRule(), // implements BIP68
                         new CheckNotExceedsMaxSigOpsRule(),
                         new PosCheckInputsRule(),
                         new AddCalculatedFeesRule(),
-                        new BuildCheckInputsRule(),
+                        new EvaluateScriptsRule(),
                         new PowUpdateCoinViewRule()
                     )
                 };

@@ -86,6 +86,9 @@ namespace Stratis.Bitcoin.Features.Consensus
 
         public long SigOpsCost { get; set; }
 
+        /// <summary>The current transaction in the loop of transactions being validated - allowing rules at transaction level without looping again.</summary>
+        public Transaction CurrentTransaction { get; set; }
+
         public RuleContext()
         {
         }
