@@ -14,6 +14,7 @@ using Stratis.Bitcoin.Features.Consensus;
 using Stratis.Bitcoin.Features.Consensus.CoinViews;
 using Stratis.Bitcoin.Features.Consensus.Interfaces;
 using Stratis.Bitcoin.Features.Consensus.Rules;
+using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Stratis.Bitcoin.Features.MemoryPool.Fee;
 using Stratis.Bitcoin.Features.Miner;
 using Stratis.Bitcoin.P2P;
@@ -137,8 +138,13 @@ namespace Stratis.Bitcoin.Features.MemoryPool.Tests
             // Just to make sure we can still make simple blocks
             blockAssembler = CreatePowBlockAssembler(consensus, dateTimeProvider, loggerFactory as LoggerFactory, mempool, mempoolLock, network);
             newBlock = blockAssembler.Build(chain.Tip, scriptPubKey);
-
-            MempoolValidator mempoolValidator = new MempoolValidator(mempool, mempoolLock, consensusValidator, dateTimeProvider, new MempoolSettings(nodeSettings), chain, cachedCoinView, loggerFactory, nodeSettings);
+            var powCheckInputsRule = new PowCheckInputsRule()
+            {
+                Logger = new Mock<ILogger>().Object,
+                Parent = new PowConsensusRules(network, loggerFactory, dateTimeProvider, chain, new NodeDeployments(network, chain), consensusSettings, new Mock<Checkpoints>().Object, cachedCoinView, new Mock<ILookaheadBlockPuller>().Object),
+                ConsensusOptions = new PowConsensusOptions()
+            }; 
+            MempoolValidator mempoolValidator = new MempoolValidator(mempool, mempoolLock, consensusValidator, dateTimeProvider, new MempoolSettings(nodeSettings), chain, cachedCoinView, loggerFactory, nodeSettings, powCheckInputsRule);
 
             return new TestChainContext { MempoolValidator = mempoolValidator, SrcTxs = srcTxs };
         }

@@ -31,6 +31,8 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
                 context.CheckInputs.Add(checkInput);
             }
 
+
+
             return Task.CompletedTask;
         }
     }

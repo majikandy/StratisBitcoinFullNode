@@ -5,14 +5,9 @@ using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
-    public abstract class CheckInputsRule : ConsensusRule
+    public abstract class CheckInputsRule : ConsensusRule, ICheckInputs
     {
         public PowConsensusOptions ConsensusOptions { get; set; }
-
-        public override void Initialize()
-        {
-            this.ConsensusOptions = this.Parent.Network.Consensus.Option<PosConsensusOptions>();
-        }
 
         public override Task RunAsync(RuleContext context)
         {
@@ -22,17 +17,26 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
             UnspentOutputSet inputs = context.Set;
             int spendHeight = context.BlockValidationContext.ChainedHeader.Height;
 
-            //TODO before Merge - share this code between the rules and remove the call inside MempoolValidator
+            this.CheckInputs(context.CurrentTransaction, inputs, spendHeight);
+
+            this.Logger.LogTrace("(-)");
+
+            return Task.CompletedTask;
+        }
+
+        /// <inheritdoc/>
+        public void CheckInputs(Transaction transaction, UnspentOutputSet inputs, int spendHeight)
+        {
             this.Logger.LogTrace("({0}:{1})", nameof(spendHeight), spendHeight);
 
-            if (!inputs.HaveInputs(context.CurrentTransaction))
+            if (!inputs.HaveInputs(transaction))
                 ConsensusErrors.BadTransactionMissingInput.Throw();
 
             Money valueIn = Money.Zero;
             Money fees = Money.Zero;
-            for (int i = 0; i < context.CurrentTransaction.Inputs.Count; i++)
+            for (int i = 0; i < transaction.Inputs.Count; i++)
             {
-                OutPoint prevout = context.CurrentTransaction.Inputs[i].PrevOut;
+                OutPoint prevout = transaction.Inputs[i].PrevOut;
                 UnspentOutputs coins = inputs.AccessCoins(prevout.Hash);
 
                 this.CheckMaturity(coins, spendHeight);
@@ -46,14 +50,14 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
                 }
             }
 
-            if (valueIn < context.CurrentTransaction.TotalOut)
+            if (valueIn < transaction.TotalOut)
             {
                 this.Logger.LogTrace("(-)[TX_IN_BELOW_OUT]");
                 ConsensusErrors.BadTransactionInBelowOut.Throw();
             }
 
             // Tally transaction fees.
-            Money txFee = valueIn - context.CurrentTransaction.TotalOut;
+            Money txFee = valueIn - transaction.TotalOut;
             if (txFee < 0)
             {
                 this.Logger.LogTrace("(-)[NEGATIVE_FEE]");
@@ -66,10 +70,6 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
                 this.Logger.LogTrace("(-)[BAD_FEE]");
                 ConsensusErrors.BadTransactionFeeOutOfRange.Throw();
             }
-
-            this.Logger.LogTrace("(-)");
-
-            return Task.CompletedTask;
         }
 
         /// <summary>
@@ -111,7 +111,10 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 
     public class PosCheckInputsRule : CheckInputsRule
     {
-        
+        public override void Initialize()
+        {
+            this.ConsensusOptions = this.Parent.Network.Consensus.Option<PosConsensusOptions>();
+        }
 
         protected override bool CoinsShouldBeChecked(UnspentOutputs coins)
         {

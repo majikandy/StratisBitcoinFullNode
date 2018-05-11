@@ -213,6 +213,7 @@ namespace Stratis.Bitcoin.Features.Consensus
                     services.AddSingleton<ConsensusSettings>();
                     services.AddSingleton<IConsensusRules, PowConsensusRules>();
                     services.AddSingleton<IRuleRegistration, PowConsensusRulesRegistration>();
+                    services.AddSingleton<ICheckInputs, PowCheckInputsRule>(); // Extra registration as this rule directly used by mempool validator
                 });
             });
 
@@ -254,6 +255,7 @@ namespace Stratis.Bitcoin.Features.Consensus
                         services.AddSingleton<ConsensusSettings>();
                         services.AddSingleton<IConsensusRules, PosConsensusRules>();
                         services.AddSingleton<IRuleRegistration, PosConsensusRulesRegistration>();
+                        services.AddSingleton<ICheckInputs, PosCheckInputsRule>(); // Extra registration as this rule directly used by mempool validator
                     });
             });
 
@@ -296,10 +298,10 @@ namespace Stratis.Bitcoin.Features.Consensus
                         new CheckNotExceedsMaxSigOpsRule(),
                         new PowCheckInputsRule(),
                         new AddCalculatedFeesRule(),
-                        new PowUpdateCoinViewRule()
-                        ),
-                    new EvaluateScriptsRule(),
-
+                        new EvaluateScriptsRule(),
+                        new PowUpdateCoinViewRule(),
+                        new PowCheckVerifyScriptsResultsRule()
+                        )
                 };
             }
         }
@@ -348,7 +350,8 @@ namespace Stratis.Bitcoin.Features.Consensus
                         new PosCheckInputsRule(),
                         new AddCalculatedFeesRule(),
                         new EvaluateScriptsRule(),
-                        new PowUpdateCoinViewRule()
+                        new PosUpdateCoinViewRule(),
+                        new PosCheckVerifyScriptsResultsRule()
                     )
                 };
             }

@@ -4,10 +4,15 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
+using Moq;
 using NBitcoin;
+using Stratis.Bitcoin.Base.Deployments;
+using Stratis.Bitcoin.BlockPulling;
 using Stratis.Bitcoin.Configuration;
 using Stratis.Bitcoin.Features.Consensus;
 using Stratis.Bitcoin.Features.Consensus.CoinViews;
+using Stratis.Bitcoin.Features.Consensus.Rules;
+using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Stratis.Bitcoin.Features.MemoryPool.Fee;
 using Stratis.Bitcoin.Utilities;
 using Xunit;
@@ -272,9 +277,17 @@ namespace Stratis.Bitcoin.Features.MemoryPool.Tests
             var coins = new InMemoryCoinView(settings.Network.GenesisHash);
             var chain = new ConcurrentChain(Network.Main.GetGenesis().Header);
             var mempoolPersistence = new MempoolPersistence(settings, loggerFactory);
-            Network.Main.Consensus.Options = new PosConsensusOptions();
+            Network.Main.Consensus.Options = new PowConsensusOptions();
             var consensusValidator = new PowConsensusValidator(Network.Main, new Checkpoints(Network.Main, consensusSettings), dateTimeProvider, loggerFactory);
-            var mempoolValidator = new MempoolValidator(txMemPool, mempoolLock, consensusValidator, dateTimeProvider, mempoolSettings, chain, coins, loggerFactory, settings);
+            var cachedCoinView = new CachedCoinView(new InMemoryCoinView(chain.Tip.HashBlock), DateTimeProvider.Default, loggerFactory);
+            var powCheckInputsRule = new PowCheckInputsRule()
+            {
+                Logger = new Mock<ILogger>().Object,
+                Parent = new PowConsensusRules(Network.Main, loggerFactory, dateTimeProvider, chain, new NodeDeployments(Network.Main, chain), consensusSettings, new Mock<Checkpoints>().Object, cachedCoinView, new Mock<ILookaheadBlockPuller>().Object),
+                ConsensusOptions = new PowConsensusOptions()
+            };
+
+            var mempoolValidator = new MempoolValidator(txMemPool, mempoolLock, consensusValidator, dateTimeProvider, mempoolSettings, chain, coins, loggerFactory, settings, powCheckInputsRule);
             var mempoolOrphans = new MempoolOrphans(mempoolLock, txMemPool, chain, new Signals.Signals(), mempoolValidator, consensusValidator, coins, dateTimeProvider, mempoolSettings, loggerFactory);
             return new MempoolManager(mempoolLock, txMemPool, mempoolValidator, mempoolOrphans, dateTimeProvider, mempoolSettings, mempoolPersistence, coins, loggerFactory, settings.Network);
         }

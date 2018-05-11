@@ -11,6 +11,7 @@ using Stratis.Bitcoin.Features.Consensus;
 using Stratis.Bitcoin.Features.Consensus.CoinViews;
 using Stratis.Bitcoin.Features.Consensus.Interfaces;
 using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
+using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Stratis.Bitcoin.Features.MemoryPool.Interfaces;
 using Stratis.Bitcoin.Utilities;
 
@@ -128,6 +129,8 @@ namespace Stratis.Bitcoin.Features.MemoryPool
         /// <summary>Coin view of the memory pool.</summary>
         private readonly CoinView coinView;
 
+        private readonly ICheckInputs inputsChecker;
+
         /// <summary>Transaction memory pool for managing transactions in the memory pool.</summary>
         private readonly ITxMempool memPool;
 
@@ -163,6 +166,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
         /// <param name="coinView">Coin view of the memory pool.</param>
         /// <param name="loggerFactory">Logger factory for creating instance logger.</param>
         /// <param name="nodeSettings">Full node settings.</param>
+        /// <param name="inputsChecker">Rule that checks inputs, used directly here.</param>
         public MempoolValidator(
             ITxMempool memPool,
             MempoolSchedulerLock mempoolLock,
@@ -172,7 +176,8 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             ConcurrentChain chain,
             CoinView coinView,
             ILoggerFactory loggerFactory,
-            NodeSettings nodeSettings)
+            NodeSettings nodeSettings,
+            ICheckInputs inputsChecker)
         {
             this.memPool = memPool;
             this.mempoolLock = mempoolLock;
@@ -182,6 +187,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             this.chain = chain;
             this.network = chain.Network;
             this.coinView = coinView;
+            this.inputsChecker = inputsChecker;
             this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
             // TODO: Implement later with CheckRateLimit()
             // this.freeLimiter = new FreeLimiterSection();
@@ -1044,6 +1050,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             if (!context.Transaction.IsCoinBase)
             {
                 this.consensusValidator.CheckInputs(context.Transaction, context.View.Set, this.chain.Height + 1);
+                new CheckInputsRule().CheckInputs();
 
                 for (int iInput = 0; iInput < tx.Inputs.Count; iInput++)
                 {

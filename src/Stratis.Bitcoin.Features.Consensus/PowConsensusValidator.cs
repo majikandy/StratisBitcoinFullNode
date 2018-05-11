@@ -62,30 +62,13 @@ namespace Stratis.Bitcoin.Features.Consensus
             this.PerformanceCounter = new ConsensusPerformanceCounter(this.dateTimeProvider);
             this.Checkpoints = checkpoints;
         }
-
+         
         /// <inheritdoc />
         public virtual void ExecuteBlock(RuleContext context, TaskScheduler taskScheduler = null)
         {
             this.logger.LogTrace("()");
 
-            Block block = context.BlockValidationContext.Block;
-
-            ChainedHeader index = context.BlockValidationContext.ChainedHeader;
-
             this.PerformanceCounter.AddProcessedBlocks(1);
-
-            if (!context.SkipValidation)
-            {
-                this.CheckBlockReward(context, context.TotalBlockFees, index.Height, block);
-
-                bool passed = context.CheckInputs.All(c => c.GetAwaiter().GetResult());
-                if (!passed)
-                {
-                    this.logger.LogTrace("(-)[BAD_TX_SCRIPT]");
-                    ConsensusErrors.BadTransactionScriptError.Throw();
-                }
-            }
-            else this.logger.LogTrace("BIP68, SigOp cost, and block reward validation skipped for block at height {0}.", index.Height);
 
             this.logger.LogTrace("(-)");
         }

@@ -34,19 +34,6 @@ namespace Stratis.Bitcoin.Features.Consensus.Interfaces
         /// <param name="mutated"><c>true</c> if at least one leaf of the merkle tree has the same hash as any subtree. Otherwise: <c>false</c>.</param>
         /// <returns>Merkle root.</returns>
         uint256 BlockWitnessMerkleRoot(Block block, out bool mutated);
-    
-        /// <summary>
-        /// Checks that transaction's inputs are valid.
-        /// </summary>
-        /// <param name="transaction">Transaction to check.</param>
-        /// <param name="inputs">Map of previous transactions that have outputs we're spending.</param>
-        /// <param name="spendHeight">Height at which we are spending coins.</param>
-        /// <exception cref="ConsensusErrors.BadTransactionMissingInput">Thrown if transaction's inputs are missing.</exception>
-        /// <exception cref="ConsensusErrors.BadTransactionInputValueOutOfRange">Thrown if input value is out of range.</exception>
-        /// <exception cref="ConsensusErrors.BadTransactionInBelowOut">Thrown if transaction inputs are less then outputs.</exception>
-        /// <exception cref="ConsensusErrors.BadTransactionNegativeFee">Thrown if fees sum is negative.</exception>
-        /// <exception cref="ConsensusErrors.BadTransactionFeeOutOfRange">Thrown if fees value is out of range.</exception>
-        void CheckInputs(Transaction transaction, UnspentOutputSet inputs, int spendHeight);
 
         /// <summary>
         /// Validates the UTXO set is correctly spent.
