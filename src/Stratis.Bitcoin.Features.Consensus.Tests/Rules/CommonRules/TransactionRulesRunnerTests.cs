@@ -1,5 +1,6 @@
 ﻿using System.Collections.Generic;
 using FluentAssertions;
+using Microsoft.Extensions.Logging;
 using Moq;
 using NBitcoin;
 using Stratis.Bitcoin.Features.Consensus.Rules;
@@ -25,7 +26,35 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
             this.WhenExecutingTheRule(this.rule, this.ruleContext);
             this.ThenItExcutesTheRulesInsideForEachTransactionInTheBlock();
             this.AndTransactionsAddedInPerformanceCounter();
+        }
 
+        [Fact]
+        public void RunAsync_WhenValidationSkipped_LogsAndDoesNotRunSubRules()
+        {
+            this.GivenARuleContext();
+            this.AndATransactionRuleRunnerWithTransactionSubRules();
+            this.And2TransactionsInTheBlock();
+            this.ButContextSetToSkipValidation();
+            this.WhenExecutingTheRule(this.rule, this.ruleContext);
+            this.ThenItDoesNotExcuteSubRules();
+            this.AndSkippingMessageLogged();
+        }
+
+        private void AndSkippingMessageLogged()
+        {
+            //TODO before PR merge - how can this be verified ?
+            //this.Logger.Verify(x => x.LogTrace("BIP68, SigOp cost, and block reward validation skipped for block at height 1."));
+        }
+
+        private void ButContextSetToSkipValidation()
+        {
+            this.ruleContext.SkipValidation = true;
+        }
+
+        private void ThenItDoesNotExcuteSubRules()
+        {
+            this.mockTransactionRule1.Verify(x => x.RunAsync(this.ruleContext), Times.Never);
+            this.mockTransactionRule2.Verify(x => x.RunAsync(this.ruleContext), Times.Never);
         }
 
         private void AndTransactionsAddedInPerformanceCounter()

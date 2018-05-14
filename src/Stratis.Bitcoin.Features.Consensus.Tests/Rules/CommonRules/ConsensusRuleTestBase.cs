@@ -13,12 +13,14 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
     public class ConsensusRuleTestBase
     {
         protected Exception CaughtExecption;
+        protected Mock<ILogger> Logger;
 
         protected void WhenExecutingTheRule(ConsensusRule rule, RuleContext ruleContext)
         {
             try
             {
-                rule.Logger = new Mock<ILogger>().Object;
+                this.Logger = new Mock<ILogger>();
+                rule.Logger = this.Logger.Object;
                 rule.Parent = new PowConsensusRules(
                     Network.RegTest, 
                     new Mock<ILoggerFactory>().Object, 
