@@ -15,9 +15,6 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
         {
             var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
 
-            if (transaction.IsCoinStake)
-                context.Stake.TotalCoinStakeValueIn = context.Set.GetValueIn(transaction);
-
             context.Set.Update(transaction, context.BlockValidationContext.ChainedHeader.Height);
 
             return Task.CompletedTask;
