@@ -1,39 +1,35 @@
-﻿using System;
-using System.Collections.Generic;
-using FluentAssertions;
-using Microsoft.Extensions.Logging;
-using Moq;
+﻿using System.Collections.Generic;
+using System.Threading.Tasks;
 using NBitcoin;
 using Stratis.Bitcoin.Base.Deployments;
-using Stratis.Bitcoin.Features.Consensus.CoinViews;
-using Stratis.Bitcoin.Features.Consensus.Rules;
 using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
-using Stratis.Bitcoin.Features.Consensus.Tests.CoinViews;
 using Stratis.Bitcoin.Utilities;
 using Xunit;
 
 namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
 {
-    public class PowTransactionRelativeLocktimeAndSignatureOperationCostRuleTests
+    public class TransactionFinalRuleTests : ConsensusRuleTestBase
     {
         private const int HeightOfBlockchain = 1;
-        private List<Transaction> transactions;
         private RuleContext ruleContext;
-        private Exception caughtExecption;
-        private Transaction transactionWithCoinbase;
         private UnspentOutputSet coinView;
         private Transaction transactionWithCoinbaseFromPreviousBlock;
+        private readonly TransactionFinalRule rule;
+
+        public TransactionFinalRuleTests()
+        {
+            this.rule = new TransactionFinalRule();
+        }
 
         [Fact]
         public void RunAsync_ValidatingATransactionThatIsNotCoinBaseButStillHasUnspentOutputsWithoutInput_ThrowsBadTransactionMissingInput()
         {
             this.GivenACoinbaseTransactionFromAPreviousBlock();
-            //this.GivenACoinbaseTransaction();
             this.AndARuleContext();
             this.AndSomeUnspentOutputs();
             this.AndATransactionWithNoUnspentOutputsAsInput();
-            this.WhenExecutingTheRule();
+            this.WhenExecutingTheRule(this.rule, this.ruleContext);
             this.ThenExceptionThrownIs(ConsensusErrors.BadTransactionMissingInput);
         }
           
@@ -41,18 +37,17 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
         public void RunAsync_ValidatingABlockHeightLowerThanBIP86Allows_ThrowsBadTransactionNonFinal()
         {
             this.GivenACoinbaseTransactionFromAPreviousBlock();
-            //this.GivenACoinbaseTransaction();
             this.AndARuleContext();
             this.AndSomeUnspentOutputs();
             this.AndATransactionBlockHeightLowerThanBip68Allows();
-            this.WhenExecutingTheRule();
+            this.WhenExecutingTheRule(this.rule, this.ruleContext);
             this.ThenExceptionThrownIs(ConsensusErrors.BadTransactionNonFinal);
         }
 
-        //[Fact]
+        //[Fact] 
+        //TODO before PR complete - Similar test to the block height but considering the time not the height.
         public void RunAsync_AttemptingABlockEarlierThanBIP86Allows_ThrowsBadTransactionNonFinal()
         {
-            //TODO before PR complete - Similar test to the block height but considering the time not the height.
         }
 
         private void AndSomeUnspentOutputs()
@@ -67,20 +62,9 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
         { 
             this.ruleContext = new RuleContext { };
             this.ruleContext.BlockValidationContext = new BlockValidationContext();
-            this.coinView = new UnspentOutputSet();
-            this.ruleContext.Set = this.coinView;
-
-            this.transactions = new List<Transaction>();
-            this.ruleContext.BlockValidationContext.Block = new Block()
-            {
-                Transactions = this.transactions
-            };
             this.ruleContext.BlockValidationContext.ChainedHeader = new ChainedHeader(new BlockHeader(), new uint256("bcd7d5de8d3bcc7b15e7c8e5fe77c0227cdfa6c682ca13dcf4910616f10fdd06"), HeightOfBlockchain);
-            this.ruleContext.Flags = new DeploymentFlags();
-
-            //TODO: COINBASE TRANSACTION REMOVED FROM TEST AT THE MOMENT - SO CANT BE ADDED HERE UNLESS NOT NULL
-            if (this.transactionWithCoinbase != null)
-                this.transactions.Add(this.transactionWithCoinbase);
+            this.ruleContext.SetItem(TransactionRulesRunner.CheckInputsContextKey, new List<Task<bool>>());
+            this.ruleContext.SetItem(TransactionRulesRunner.SigOpsCostContextKey, (long)0);
         }
 
         private void AndATransactionBlockHeightLowerThanBip68Allows()
@@ -97,15 +81,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
             };
 
             this.ruleContext.Flags = new DeploymentFlags() { LockTimeFlags = Transaction.LockTimeFlags.VerifySequence };
-            this.transactions.Add(transaction);
-        }
-
-        private void GivenACoinbaseTransaction()
-        {
-            this.transactionWithCoinbase = new Transaction();
-            var txIn = new TxIn { PrevOut = new OutPoint() };
-            this.transactionWithCoinbase.AddInput(txIn);
-            this.transactionWithCoinbase.AddOutput(new TxOut());
+            this.ruleContext.SetItem(TransactionRulesRunner.CurrentTransactionContextKey, transaction);
         }
 
         private void GivenACoinbaseTransactionFromAPreviousBlock()
@@ -118,34 +94,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
 
         private void AndATransactionWithNoUnspentOutputsAsInput()
         {
-            this.transactions.Add(new Transaction { Inputs = { new TxIn() } });
-        }
-
-        private void WhenExecutingTheRule()
-        {
-            try
-            {
-                var rule = new TransactionRulesRunner(new TransactionFinalRule())
-                {
-                    Logger = new Mock<ILogger>().Object,
-                    Parent = new PowConsensusRules(Network.RegTest, new Mock<ILoggerFactory>().Object, new Mock<IDateTimeProvider>().Object, new ConcurrentChain(), new NodeDeployments(Network.RegTest, new ConcurrentChain()), new ConsensusSettings(), new Mock<ICheckpoints>().Object, new Mock<CoinView>().Object, null)
-                };
-                rule.Initialize();
-
-                rule.RunAsync(this.ruleContext).GetAwaiter().GetResult();
-            }
-            catch (Exception e)
-            {
-                this.caughtExecption = e;
-            }
-        }
-
-        private void ThenExceptionThrownIs(ConsensusError consensusErrorType)
-        {
-            this.caughtExecption.Should().NotBeNull();
-            this.caughtExecption.Should().BeOfType<ConsensusErrorException>();
-            var consensusErrorException = (ConsensusErrorException) this.caughtExecption;
-            consensusErrorException.ConsensusError.Should().Be(consensusErrorType);
+            this.ruleContext.SetItem(TransactionRulesRunner.CurrentTransactionContextKey, new Transaction { Inputs = { new TxIn() } });
         }
     }
 }
