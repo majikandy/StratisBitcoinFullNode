@@ -45,6 +45,24 @@ namespace Stratis.Bitcoin.Features.Consensus
     /// </summary>
     public class RuleContext
     {
+        //TODO before PR merge : - Not all context items moved into this dictionary yet, only the newly added items for transaction level rules.
+        public IDictionary<string, object> items = new Dictionary<string, object>();
+
+        public void SetItem(string key, object value)
+        {
+            if (this.items.ContainsKey(key))
+            {
+                this.items.Remove(key);
+            }
+
+            this.items.Add(key, value);
+        }
+
+        public TItem Get<TItem>(string key)
+        {
+            return (TItem)this.items[key];
+        }
+
         public NBitcoin.Consensus Consensus { get; set; }
 
         public DateTimeOffset Time { get; set; }
@@ -63,8 +81,6 @@ namespace Stratis.Bitcoin.Features.Consensus
 
         public Money TotalBlockFees { get; set; } = Money.Zero;
 
-        public List<Task<bool>> CheckInputs { get; set; } = new List<Task<bool>>();
-
         public bool CheckMerkleRoot { get; set; }
 
         public bool CheckPow { get; set; }
@@ -76,18 +92,13 @@ namespace Stratis.Bitcoin.Features.Consensus
         /// <summary>The current tip of the chain that has been validated.</summary>
         public ChainedHeader ConsensusTip { get; set; }
 
-        //TODO before PR merge: not sure if this belongs on the context here or the rule Parent.
+        //TODO before PR merge: not sure if this belongs on the context or the rule Parent??
         public TaskScheduler TaskScheduler { get; } = TaskScheduler.Default;
 
         public bool IsPoS
         {
             get { return this.Stake != null; }
         }
-
-        public long SigOpsCost { get; set; }
-
-        /// <summary>The current transaction in the loop of transactions being validated - allowing rules at transaction level without looping again.</summary>
-        public Transaction CurrentTransaction { get; set; }
 
         public RuleContext()
         {

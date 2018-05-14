@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
+using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
@@ -11,13 +12,15 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 
         public override Task RunAsync(RuleContext context)
         {
-            if (context.CurrentTransaction.IsCoinBase)
+            var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
+
+            if (transaction.IsCoinBase)
                 return Task.CompletedTask;
 
             UnspentOutputSet inputs = context.Set;
             int spendHeight = context.BlockValidationContext.ChainedHeader.Height;
 
-            this.CheckInputs(context.CurrentTransaction, inputs, spendHeight);
+            this.CheckInputs(transaction, inputs, spendHeight);
 
             this.Logger.LogTrace("(-)");
 

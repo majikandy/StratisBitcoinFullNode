@@ -24,7 +24,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules
         private readonly Dictionary<string, ConsensusRuleDescriptor> consensusRules;
 
         /// <summary>Specification of the network the node runs on - regtest/testnet/mainnet.</summary>
-        public Network Network { get; }
+        public virtual Network Network { get; }
 
         /// <summary>A provider of date and time.</summary>
         public virtual IDateTimeProvider DateTimeProvider { get; }

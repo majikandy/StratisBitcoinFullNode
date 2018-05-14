@@ -1,6 +1,7 @@
 ﻿using System.Threading.Tasks;
 using NBitcoin;
 using Stratis.Bitcoin.Base.Deployments;
+using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
@@ -15,13 +16,17 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 
         public override Task RunAsync(RuleContext context)
         {
+            var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
+
             // GetTransactionSignatureOperationCost counts 3 types of sigops:
             // * legacy (always),
             // * p2sh (when P2SH enabled in flags and excludes coinbase),
             // * witness (when witness enabled in flags and excludes coinbase).
-            context.SigOpsCost += this.GetTransactionSignatureOperationCost(context.CurrentTransaction, context.Set, context.Flags);
-            if (context.SigOpsCost > this.ConsensusOptions.MaxBlockSigopsCost)
+            var sigOpsCostRunningTotal = context.Get<long>(TransactionRulesRunner.SigOpsCostContextKey) + this.GetTransactionSignatureOperationCost(transaction, context.Set, context.Flags);
+            if (sigOpsCostRunningTotal > this.ConsensusOptions.MaxBlockSigopsCost)
                 ConsensusErrors.BadBlockSigOps.Throw();
+
+            context.SetItem(TransactionRulesRunner.SigOpsCostContextKey, sigOpsCostRunningTotal);
 
             return Task.CompletedTask;
         }

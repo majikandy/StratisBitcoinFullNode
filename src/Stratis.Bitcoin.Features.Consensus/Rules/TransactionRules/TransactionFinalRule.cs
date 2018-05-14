@@ -2,6 +2,7 @@
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Stratis.Bitcoin.Base.Deployments;
+using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
@@ -12,30 +13,32 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
     {
         public override Task RunAsync(RuleContext context)
         {
-            if (context.CurrentTransaction.IsCoinBase || context.CurrentTransaction.IsCoinStake)
+            var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
+
+            if (transaction.IsCoinBase || transaction.IsCoinStake)
                 return Task.CompletedTask;
 
             ChainedHeader index = context.BlockValidationContext.ChainedHeader;
             DeploymentFlags flags = context.Flags;
             UnspentOutputSet view = context.Set;
 
-            if (!view.HaveInputs(context.CurrentTransaction))
+            if (!view.HaveInputs(transaction))
             {
                 this.Logger.LogTrace("(-)[BAD_TX_NO_INPUT]");
                 ConsensusErrors.BadTransactionMissingInput.Throw();
             }
 
-            var prevheights = new int[context.CurrentTransaction.Inputs.Count];
+            var prevheights = new int[transaction.Inputs.Count];
             
             // Check that transaction is BIP68 final.
             // BIP68 lock checks (as opposed to nLockTime checks) must
             // be in ConnectBlock because they require the UTXO set.
-            for (int j = 0; j < context.CurrentTransaction.Inputs.Count; j++)
+            for (int j = 0; j < transaction.Inputs.Count; j++)
             {
-                prevheights[j] = (int) view.AccessCoins(context.CurrentTransaction.Inputs[j].PrevOut.Hash).Height;
+                prevheights[j] = (int) view.AccessCoins(transaction.Inputs[j].PrevOut.Hash).Height;
             }
 
-            if (!context.CurrentTransaction.CheckSequenceLocks(prevheights, index, flags.LockTimeFlags))
+            if (!transaction.CheckSequenceLocks(prevheights, index, flags.LockTimeFlags))
             {
                 this.Logger.LogTrace("(-)[BAD_TX_NON_FINAL]");
                 ConsensusErrors.BadTransactionNonFinal.Throw();

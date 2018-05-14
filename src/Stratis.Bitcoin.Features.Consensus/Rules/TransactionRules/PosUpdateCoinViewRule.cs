@@ -1,4 +1,6 @@
 ﻿using System.Threading.Tasks;
+using NBitcoin;
+using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
@@ -11,7 +13,9 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
         /// <param name="context">Context that contains variety of information regarding blocks validation and execution.</param>
         public override Task RunAsync(RuleContext context)
         {
-            context.Set.Update(context.CurrentTransaction, context.BlockValidationContext.ChainedHeader.Height);
+            var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
+
+            context.Set.Update(transaction, context.BlockValidationContext.ChainedHeader.Height);
 
             return Task.CompletedTask;
         }

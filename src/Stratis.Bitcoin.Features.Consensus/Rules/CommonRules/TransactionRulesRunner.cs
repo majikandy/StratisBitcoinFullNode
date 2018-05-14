@@ -14,6 +14,13 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
     [ExecutionRule]
     public class TransactionRulesRunner : ConsensusRule
     {
+        /// <summary>The current transaction in the loop of transactions being validated - allowing rules at transaction level without looping again.</summary>
+        public const string CurrentTransactionContextKey = "CurrentTransaction";
+
+        public const string CheckInputsContextKey = "CheckInputs";
+
+        public const string SigOpsCostContextKey = "SigOpsCost";
+
         private readonly IEnumerable<ConsensusRule> transactionConsensusRules;
 
         /// <summary>Consensus options.</summary>
@@ -33,6 +40,8 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
         public override Task RunAsync(RuleContext context)
         {
             this.Parent.PerformanceCounter.AddProcessedBlocks(1);
+            context.SetItem(CheckInputsContextKey, new List<Task<bool>>());
+            context.SetItem(SigOpsCostContextKey, (long)0);
 
             foreach (Transaction transaction in context.BlockValidationContext.Block.Transactions)
             {
@@ -42,7 +51,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
                 {
                     rule.Logger = this.Logger;
                     rule.Parent = this.Parent;
-                    context.CurrentTransaction = transaction;
+                    context.SetItem(CurrentTransactionContextKey, transaction);
                     rule.Initialize();
                     rule.RunAsync(context);
                 }

@@ -1,7 +1,9 @@
-﻿using System.Linq;
+﻿using System.Collections.Generic;
+using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
+using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
@@ -16,7 +18,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
             {
                 this.CheckBlockReward(context.TotalBlockFees, index.Height, context.BlockValidationContext.Block);
 
-                bool passed = context.CheckInputs.All(c => c.GetAwaiter().GetResult());
+                bool passed = context.Get<List<Task<bool>>>(TransactionRulesRunner.CheckInputsContextKey).All(c => c.GetAwaiter().GetResult());
                 if (!passed)
                 {
                     this.Logger.LogTrace("(-)[BAD_TX_SCRIPT]");

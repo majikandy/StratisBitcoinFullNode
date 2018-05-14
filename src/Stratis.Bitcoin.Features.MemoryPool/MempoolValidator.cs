@@ -166,7 +166,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
         /// <param name="coinView">Coin view of the memory pool.</param>
         /// <param name="loggerFactory">Logger factory for creating instance logger.</param>
         /// <param name="nodeSettings">Full node settings.</param>
-        /// <param name="inputsChecker">Rule that checks inputs, used directly here.</param>
+        /// <param name="inputsChecker">Rule that checks inputs.</param>
         public MempoolValidator(
             ITxMempool memPool,
             MempoolSchedulerLock mempoolLock,
@@ -1049,8 +1049,7 @@ namespace Stratis.Bitcoin.Features.MemoryPool
             Transaction tx = context.Transaction;
             if (!context.Transaction.IsCoinBase)
             {
-                this.consensusValidator.CheckInputs(context.Transaction, context.View.Set, this.chain.Height + 1);
-                new CheckInputsRule().CheckInputs();
+                this.inputsChecker.CheckInputs(context.Transaction, context.View.Set, this.chain.Height + 1);
 
                 for (int iInput = 0; iInput < tx.Inputs.Count; iInput++)
                 {

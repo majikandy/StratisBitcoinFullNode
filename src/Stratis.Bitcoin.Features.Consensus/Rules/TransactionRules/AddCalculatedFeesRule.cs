@@ -1,4 +1,6 @@
 ﻿using System.Threading.Tasks;
+using NBitcoin;
+using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
 
 namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
 {
@@ -6,11 +8,13 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
     {
         public override Task RunAsync(RuleContext context)
         {
+            var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
+
             //TODO before Merge - do we need to consider the IsCoinStake here?  I believe the original code didn't
-            if (context.CurrentTransaction.IsCoinBase)
+            if (transaction.IsCoinBase)
                 return Task.CompletedTask;
 
-            context.TotalBlockFees += context.Set.GetValueIn(context.CurrentTransaction) - context.CurrentTransaction.TotalOut;
+            context.TotalBlockFees += context.Set.GetValueIn(transaction) - transaction.TotalOut;
 
             return Task.CompletedTask;
         }
