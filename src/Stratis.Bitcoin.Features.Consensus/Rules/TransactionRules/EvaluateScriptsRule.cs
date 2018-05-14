@@ -35,6 +35,8 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
                 context.Get<List<Task<bool>>>(TransactionRulesRunner.CheckInputsContextKey).Add(checkInput);
             }
 
+
+
             return Task.CompletedTask;
         }
     }

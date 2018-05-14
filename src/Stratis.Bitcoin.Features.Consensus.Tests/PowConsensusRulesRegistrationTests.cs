@@ -3,6 +3,7 @@ using System.Linq;
 using FluentAssertions;
 using Stratis.Bitcoin.Features.Consensus.Rules;
 using Stratis.Bitcoin.Features.Consensus.Rules.CommonRules;
+using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Xunit;
 
 namespace Stratis.Bitcoin.Features.Consensus.Tests
@@ -19,6 +20,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests
         [Fact]
         public void GetRules_ForPOW_ReturnsListOfRegisteredPowRules()
         {
+            this.rules.Should().HaveCount(17);
             this.rules.ElementAt(0).Should().BeOfType<BlockHeaderRule>();
             this.rules.ElementAt(1).Should().BeOfType<CalculateWorkRule>();
             this.rules.ElementAt(2).Should().BeOfType<CheckpointsRule>();
@@ -35,6 +37,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Tests
             this.rules.ElementAt(13).Should().BeOfType<LoadCoinviewRule>();
             this.rules.ElementAt(14).Should().BeOfType<TransactionDuplicationActivationRule>();
             this.rules.ElementAt(15).Should().BeOfType<TransactionRulesRunner>();
+            this.rules.ElementAt(16).Should().BeOfType<PowCheckVerifyScriptsResultsRule>();
         }
     }
 }

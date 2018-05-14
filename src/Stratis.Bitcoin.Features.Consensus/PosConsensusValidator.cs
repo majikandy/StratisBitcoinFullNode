@@ -127,10 +127,6 @@ namespace Stratis.Bitcoin.Features.Consensus
             this.logger.LogTrace("(-)");
         }
 
-
-        /// <inheritdoc />
-       
-
         /// <summary>
         /// Checks and computes stake.
         /// </summary>

@@ -299,9 +299,10 @@ namespace Stratis.Bitcoin.Features.Consensus
                         new PowCheckInputsRule(),
                         new AddCalculatedFeesRule(),
                         new EvaluateScriptsRule(),
-                        new PowUpdateCoinViewRule(),
-                        new PowCheckVerifyScriptsResultsRule()
-                        )
+                        new PowUpdateCoinViewRule()
+                        ),
+                    new PowCheckVerifyScriptsResultsRule()
+
                 };
             }
         }
@@ -350,9 +351,9 @@ namespace Stratis.Bitcoin.Features.Consensus
                         new PosCheckInputsRule(),
                         new AddCalculatedFeesRule(),
                         new EvaluateScriptsRule(),
-                        new PosUpdateCoinViewRule(),
-                        new PosCheckVerifyScriptsResultsRule()
-                    )
+                        new PosUpdateCoinViewRule()
+                    ),
+                    new PosCheckVerifyScriptsResultsRule()
                 };
             }
         }

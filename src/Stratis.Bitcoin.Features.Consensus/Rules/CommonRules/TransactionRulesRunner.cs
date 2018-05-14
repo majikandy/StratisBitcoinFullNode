@@ -41,7 +41,6 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
             context.SetItem(SigOpsCostContextKey, (long)0);
             context.SetItem(TotalBlockFeesContextKey, Money.Zero);
 
-            //TODO before PR merge - won't this never get reached if validation skipped?
             if (context.SkipValidation)
             { 
                 this.Logger.LogTrace("BIP68, SigOp cost, and block reward validation skipped for block at height {0}.", context.BlockValidationContext.ChainedHeader.Height);
