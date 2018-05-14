@@ -7,7 +7,7 @@ using Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules;
 using Stratis.Bitcoin.Utilities;
 using Xunit;
 
-namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules
+namespace Stratis.Bitcoin.Features.Consensus.Tests.Rules.CommonRules.TransactionRules
 {
     public class TransactionFinalRuleTests : ConsensusRuleTestBase
     {
