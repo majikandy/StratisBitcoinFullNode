@@ -10,11 +10,13 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
         {
             var transaction = context.Get<Transaction>(TransactionRulesRunner.CurrentTransactionContextKey);
 
-            //TODO before Merge - do we need to consider the IsCoinStake here?  I believe the original code didn't
+            //TODO before Merge - do we need to consider the IsCoinStake here? The original code didn't
             if (transaction.IsCoinBase)
                 return Task.CompletedTask;
 
-            context.TotalBlockFees += context.Set.GetValueIn(transaction) - transaction.TotalOut;
+            var blockFeesRunningTotal = context.Get<Money>(TransactionRulesRunner.TotalBlockFeesContextKey) + (context.Set.GetValueIn(transaction) - transaction.TotalOut);
+
+            context.SetItem(TransactionRulesRunner.TotalBlockFeesContextKey, blockFeesRunningTotal);
 
             return Task.CompletedTask;
         }

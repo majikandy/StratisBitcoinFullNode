@@ -79,8 +79,6 @@ namespace Stratis.Bitcoin.Features.Consensus
 
         public UnspentOutputSet Set { get; set; }
 
-        public Money TotalBlockFees { get; set; } = Money.Zero;
-
         public bool CheckMerkleRoot { get; set; }
 
         public bool CheckPow { get; set; }

@@ -19,10 +19,9 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
         public const string SigOpsCostContextKey = "SigOpsCost";
 
-        private readonly IEnumerable<ConsensusRule> transactionConsensusRules;
+        public const string TotalBlockFeesContextKey = "TotalBlockFees";
 
-        /// <summary>Consensus options.</summary>
-        public PowConsensusOptions ConsensusOptions { get; private set; }
+        private readonly IEnumerable<ConsensusRule> transactionConsensusRules;
 
         public TransactionRulesRunner(params ConsensusRule[] transactionConsensusRules)
         {
@@ -31,8 +30,6 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
         public override void Initialize()
         {
-            //TODO before PR - this shouldn't be hardcoded as Pow - this will probably go away since this is now the runner of transaction rules
-            this.ConsensusOptions = this.Parent.Network.Consensus.Option<PowConsensusOptions>();
         }
 
         public override Task RunAsync(RuleContext context)
@@ -42,6 +39,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
             context.SetItem(CheckInputsContextKey, new List<Task<bool>>());
             context.SetItem(SigOpsCostContextKey, (long)0);
+            context.SetItem(TotalBlockFeesContextKey, Money.Zero);
 
             //TODO before PR merge - won't this never get reached if validation skipped?
             if (context.SkipValidation)

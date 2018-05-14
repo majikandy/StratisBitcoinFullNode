@@ -16,7 +16,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.TransactionRules
             ChainedHeader index = context.BlockValidationContext.ChainedHeader;
             if (!context.SkipValidation)
             {
-                this.CheckBlockReward(context.TotalBlockFees, index.Height, context.BlockValidationContext.Block);
+                this.CheckBlockReward(context.Get<Money>(TransactionRulesRunner.TotalBlockFeesContextKey), index.Height, context.BlockValidationContext.Block);
 
                 bool passed = context.Get<List<Task<bool>>>(TransactionRulesRunner.CheckInputsContextKey).All(c => c.GetAwaiter().GetResult());
                 if (!passed)
