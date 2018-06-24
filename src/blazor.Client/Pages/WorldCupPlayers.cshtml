@@ -1,0 +1,44 @@
+﻿@using System.Net
+@using System.Net.Http
+@using Microsoft.AspNetCore.Blazor.Browser.Http
+@using Microsoft.AspNetCore.Blazor.Browser.Services
+@page "/WorldCupPlayers"
+@inject HttpClient HttpClient
+
+<h1>Current Players</h1>
+
+<p>This component show all the current players.</p>
+
+
+@if (players == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Players</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var player in players.Split(','))
+            {
+                <tr>
+                    <td>@player</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@functions {
+    string players = "none";
+    string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
+
+    protected override async Task OnInitAsync()
+    {
+        players = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersNickNames&DataType=String");
+    }
+}

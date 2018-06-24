@@ -1,0 +1,56 @@
+﻿@using System.Net
+@using System.Net.Http
+@using Microsoft.AspNetCore.Blazor.Browser.Http
+@using Microsoft.AspNetCore.Blazor.Browser.Services
+@page "/JoinWorldCup"
+@inject HttpClient HttpClient
+
+<h1>Join world the cup </h1>
+
+<p>This component show all the current players.</p>
+
+
+
+<button class="btn btn-primary" onclick="@JoinGame">Join </button>
+
+nick name: <input type="text" bind="@playersname" />
+wallet name: <input type="text" bind="@walletname" />
+wallet password: <input type="text" bind="@walletpassword" />
+senders address: <input type="text" bind="@sender" />
+
+
+@if (playersname == null)
+{
+    <p><em>Loading...</em></p>
+}
+else
+{
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Players</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var player in playersname.Split(','))
+            {
+                <tr>
+                    <td>@player</td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@functions {
+    string playersname = "";
+    string walletname = "";
+    string walletpassword = "";
+    string sender = "";
+    string contract = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
+
+    async Task JoinGame()
+    {
+        
+    }
+}

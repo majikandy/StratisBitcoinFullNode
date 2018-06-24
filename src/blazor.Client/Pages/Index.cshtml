@@ -1,0 +1,22 @@
+﻿@using System.Net.Http
+@using blazor.Client
+@page "/"
+@inject HttpClient HttpClient
+
+<h1>World cup smart contract explorer</h1>
+
+Interact with the stratis world cup smart contract
+
+<p>@status</p>
+@*<SurveyPrompt Title="How is Blazor working for you?" />*@
+
+@functions {
+
+    StatusModel status;
+    protected override async Task OnInitAsync()
+    {
+
+      //  status = await HttpClient.GetJsonAsync<StatusModel>("http://localhost:38220/api/Node/status");
+
+    }
+}

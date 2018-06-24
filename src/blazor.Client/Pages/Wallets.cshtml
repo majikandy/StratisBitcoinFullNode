@@ -1,0 +1,147 @@
+﻿@using System.Net
+@using System.Net.Http
+@using blazor.Client
+@using Microsoft.AspNetCore.Blazor.Browser.Http
+@using Microsoft.AspNetCore.Blazor.Browser.Services
+@page "/wallets"
+@inject HttpClient HttpClient
+
+<h1>Wallets</h1>
+
+<button class="btn btn-primary" onclick="@CreateWallet">Create wallet</button>
+
+passowrd: <input type="text" bind="@password" />
+wallet name: <input type="text" bind="@walletname" />
+
+<br/>
+<strong>@working</strong>
+<p>Nemonic:</p> <strong> @elementnemonic</strong>
+
+<br/>
+<p>This component show all the current wallets.</p>
+
+@if (walletFileModel != null)
+{
+    <p>Path location: @walletFileModel?.WalletsPath</p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Wallets</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var wallet in wallets)
+            {
+                <tr>
+                    <td>@wallet.Key</td>
+                    <td><button class="btn" onclick="@(() => UnusedAddress(wallet.Key))">get address</button></td>
+                    <td>Balance: @wallet.Value.balance </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+
+@if (walletHistoryModel != null)
+{
+    var account = walletHistoryModel.History.First();
+
+    <p><strong>Receive Address:</strong> @receiveAddress</p>
+
+    <table class="table">
+        <thead>
+            <tr>
+                <th>Amount</th>
+                <th>Block</th>
+                <th>IsSpent</th>
+                <th>Address</th>
+                <th>Type</th>
+            </tr>
+        </thead>
+        <tbody>
+        @foreach (var wallet in account.TransactionsHistory)
+        {
+            <tr>
+                <td>@((double)wallet.Amount / (double)100000000)</td>
+                <td>@wallet.ConfirmedInBlock</td>
+                <td>@wallet.Payments.Any()</td>
+                <td>@wallet.ToAddress</td>
+                <td>@wallet.Type.ToString()</td>
+            </tr>
+        }
+        </tbody>
+    </table>
+}
+
+@functions {
+    WalletFileModel walletFileModel;
+
+    string working;
+    string password;
+    string walletname;
+    string nemonic;
+    string elementnemonic;
+
+    Dictionary<string, balances> wallets;
+
+    class balances
+    {
+        public double balance;
+    }
+
+    WalletHistoryModel walletHistoryModel;
+    string receiveAddress;
+
+    protected override async Task OnInitAsync()
+    {
+        walletFileModel = await HttpClient.GetJsonAsync<WalletFileModel>("http://localhost:38220/api/Wallet/files");
+
+        wallets = new Dictionary<string, balances>();
+
+        foreach (var walletsFile in walletFileModel.WalletsFiles)
+        {
+            var walletname = walletsFile.Split('.').First().Replace("\\", "").Replace("\"", "");
+
+            WalletBalanceModel balance = await HttpClient.GetJsonAsync<WalletBalanceModel>("http://localhost:38220/api/Wallet/balance?WalletName=" + walletname + "&AccountName=account%200");
+            var b = balance.Balances.Any() ? balance.Balances.First().AmountConfirmed : 0;
+
+
+            wallets.Add(walletsFile, new balances() { balance = (double)b/ (double)100000000 });
+        }
+    }
+
+    private async void CreateWallet()
+    {
+        working = "Creating wallet...";
+
+        elementnemonic = await HttpClient.GetStringAsync("http://localhost:38220/api/Wallet/mnemonic");
+        nemonic = elementnemonic.Replace("\\", "").Replace("\"", "");
+        await HttpClient.SendJsonAsync(HttpMethod.Post, "http://localhost:38220/api/Wallet/create", new WalletCreationRequest() { Mnemonic = nemonic, Name = walletname, Password = password });
+
+        await this.OnInitAsync();
+
+        working = string.Empty;
+
+        this.StateHasChanged();
+    }
+
+    private async void UnusedAddress(string wallet)
+    {
+
+        var address = await HttpClient.GetStringAsync("http://localhost:38220/api/Wallet/unusedaddress?WalletName=" + wallet.Split('.').First() + "&AccountName=account%200");
+        receiveAddress = address;
+
+        GetHistory(wallet);
+
+        this.StateHasChanged();
+    }
+
+    private async void GetHistory(string wallet)
+    {
+
+        walletHistoryModel  = await HttpClient.GetJsonAsync<WalletHistoryModel>("http://localhost:38220/api/Wallet/history?WalletName=" + wallet.Split('.').First() + "&AccountName=account%200");
+
+        this.StateHasChanged();
+    }
+}
