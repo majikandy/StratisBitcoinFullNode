@@ -1,6 +1,10 @@
 ﻿using System.IO;
+using System.Linq;
+using System.Net.Mime;
+using Microsoft.AspNetCore.Blazor.Server;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Hosting;
+using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
@@ -66,6 +70,16 @@ namespace Stratis.Bitcoin.Features.Api
                 .AddJsonOptions(options => NBitcoin.JsonConverters.Serializer.RegisterFrontConverters(options.SerializerSettings))
                 .AddControllers(services);
 
+
+            services.AddResponseCompression(options =>
+            {
+                options.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(new[]
+                {
+                    MediaTypeNames.Application.Octet,
+                    WasmMediaTypeNames.Application.Wasm,
+                });
+            });
+
             // Register the Swagger generator, defining one or more Swagger documents
             services.AddSwaggerGen(setup =>
             {
@@ -94,12 +108,16 @@ namespace Stratis.Bitcoin.Features.Api
         // This method gets called by the runtime. Use this method to configure the HTTP request pipeline.
         public void Configure(IApplicationBuilder app, IHostingEnvironment env, ILoggerFactory loggerFactory)
         {
+            app.UseResponseCompression();
+
             loggerFactory.AddConsole(this.Configuration.GetSection("Logging"));
             loggerFactory.AddDebug();
 
             app.UseCors("CorsPolicy");
 
             app.UseMvc();
+
+            app.UseBlazor<blazor.Client.Program>();
 
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger();
