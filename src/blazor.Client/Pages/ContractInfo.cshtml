@@ -42,22 +42,30 @@ Contract address: <input type="text" bind="@contractAddress" />
 
                 @for (int i = 0; i < storageStrings.Count; i++)
                 {
-                    <tr>
-                        <td>@storageStrings.Keys.ElementAt(i)</td>
-                        <td>
-                            @if (storageStrings.Values.ElementAt(i).StartsWith("["))
-                            {
-                                var list = storageStrings.Values.ElementAt(i).Trim('[').Trim(']').Split(',');
+                    string key = storageStrings.Keys.ElementAt(i);
+                    string value = storageStrings.Values.ElementAt(i);
 
+                    <tr>
+                        <td>
+                            @key
+                            @if (value.StartsWith("["))
+                            {
+                                <br/><span class="badge badge-pill badge-dark">List</span>
+                            }
+                        </td>
+                        <td>
+                            @if (value.StartsWith("["))
+                            {
+                                var list = value.Trim('[').Trim(']').Split(',');
+                                
                                 for (int j = 0; j < list.Length; j++)
                                 {
-                                    @list[j]<br />
+                                    @list[j] <br />
                                 }
                             }
                             else
                             {
-                                @storageStrings.Values.ElementAt(i)
-
+                                @value
                             }
                         </td>
                     </tr>
