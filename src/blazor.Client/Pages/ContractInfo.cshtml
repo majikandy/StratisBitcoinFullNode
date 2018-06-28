@@ -21,8 +21,13 @@
 
 
 Contract address: <input type="text" bind="@contractAddress" />
-<input type="submit" onclick="@GetAllContractInfo" />
+<input type="submit" onclick="@GetAllContractInfo" value="Get info" disabled="@gettingInfo" />
 <br /><br />
+
+@if (gettingInfo)
+{
+    <div>Collecting storage values...</div>
+}
 @if (storageStrings != null && storageStrings.Count != 0)
 {
     <div class="table-responsive-md">
@@ -70,6 +75,7 @@ string contractName;
 string codeJson;
 string csharp;
 
+    bool gettingInfo = false;
 
 Dictionary<string, string> storageStrings;
 
@@ -80,24 +86,32 @@ protected override async Task OnInitAsync()
 
 private async Task GetAllContractInfo()
 {
-    storageStrings = new Dictionary<string, string>();
-    codeJson = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/code?address=" +
-                                               contractAddress);
+    gettingInfo = true;
+    try
+    {
+        storageStrings = new Dictionary<string, string>();
+        codeJson = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/code?address=" +
+                                                   contractAddress);
 
-    var code = JObject.Parse(codeJson);
+        var code = JObject.Parse(codeJson);
 
-    csharp = code["csharp"].Value<string>();
+        csharp = code["csharp"].Value<string>();
 
-    await GetStorageValues(csharp, "GetString", "String", storageStrings);
-    await GetStorageValues(csharp, "GetAddress", "Address", storageStrings);
-    await GetStorageValues(csharp, "GetInt64", "Long", storageStrings);
-    await GetStorageValues(csharp, "GetUInt64", "Ulong", storageStrings);
-    await GetStorageValues(csharp, "GetInt32", "Int", storageStrings);
-    await GetStorageValues(csharp, "GetUInt32", "Uint", storageStrings);
+        await GetStorageValues(csharp, "GetString", "String", storageStrings);
+        await GetStorageValues(csharp, "GetAddress", "Address", storageStrings);
+        await GetStorageValues(csharp, "GetInt64", "Long", storageStrings);
+        await GetStorageValues(csharp, "GetUInt64", "Ulong", storageStrings);
+        await GetStorageValues(csharp, "GetInt32", "Int", storageStrings);
+        await GetStorageValues(csharp, "GetUInt32", "Uint", storageStrings);
 
 
-    await GetStorageListValues(csharp, "GetStringList", "String", storageStrings);
-    await GetStorageListValues(csharp, "GetAddressList", "Address", storageStrings);
+        await GetStorageListValues(csharp, "GetStringList", "String", storageStrings);
+        await GetStorageListValues(csharp, "GetAddressList", "Address", storageStrings);
+    }
+    finally
+    {
+        gettingInfo = false;
+    }
 }
 
 private async Task GetStorageValues(string csharp, string perisistentStateMethodName, string dataType, IDictionary<string, string> storageDictionary)
