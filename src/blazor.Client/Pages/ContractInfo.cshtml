@@ -1,0 +1,126 @@
+﻿@using System.Net
+@using System.Net.Http
+@using System.Reflection
+@using System.Runtime.Serialization.Json
+@using System.Text
+@using System.Text.RegularExpressions
+@using blazor.Client.Pages
+@using blazor.Client.ViewModels
+@using Microsoft.AspNetCore.Blazor.Browser.Http
+@using Microsoft.AspNetCore.Blazor.Browser.Services
+@using Newtonsoft.Json
+@using System.Linq;
+@using Newtonsoft.Json.Linq
+
+@page "/ContractInfo"
+@inject HttpClient HttpClient
+
+
+<h1>Contract Info</h1>
+
+<p>Explore any contract</p>
+
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Info</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr>
+        <td></td>
+    </tr>
+    </tbody>
+</table>
+@{
+
+}
+
+@*<div>@codeJson</div>
+<div>@csharp</div>*@
+
+<table class="table">
+    <thead>
+    <tr>
+        <th>Storage key</th>
+        <th>value</th>
+    </tr>
+    </thead>
+    <tbody>
+
+    @for (int i = 0; i < storageStrings.Count; i++)
+    {
+        <tr>
+            <td>@storageStrings[i]</td>
+            <td>@storageStringsValues[i]</td>
+        </tr>
+    }
+    </tbody>
+</table>
+
+@*<div>@byteArray.Length</div>*@
+@*<div>@contractName</div>*@
+@*<div>@properties.ElementAt(0).PropertyName</div>*@
+
+
+
+@functions {
+    string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
+
+    string contractName;
+    string codeJson;
+    JObject code;
+    string bytecode;
+    string csharp;
+    byte[] byteArray;
+    string code2;
+    string contractType;
+    int length;
+
+
+    List<string> storageStrings = new List<string>();
+    List<string> storageStringsValues = new List<string>();
+    //IEnumerable<ContractInfo.PropInfo> properties;
+
+
+    protected override async Task OnInitAsync()
+    {
+        codeJson = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/code?address=" + contractAddress);
+
+        var code = JObject.Parse(codeJson);
+
+        csharp = code["csharp"].Value<string>();
+
+
+        string stringRegex = @"base.PersistentState.GetString\(""([^""]*)";
+        var matches = Regex.Matches(csharp, stringRegex);
+
+        foreach (Match match in matches)
+        {
+            string storageKey = match.Groups[1].Value;
+            storageStrings.Add(storageKey);
+            try
+            {
+                var value = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=" + storageKey + "&DataType=String");
+                storageStringsValues.Add(value);
+            }
+            catch
+            {
+                storageStringsValues.Add("(NULL)");
+            }
+        }
+    }
+
+    //public class PropInfo
+    //{
+    //    public string PropertyName { get; set; }
+    //    public string PropertyType { get; set; }
+
+    //    public PropInfo(string propertyName, string propertyType)
+    //    {
+    //        PropertyName = propertyName;
+    //        PropertyType = propertyType;
+    //    }
+    //}
+}
