@@ -21,24 +21,7 @@
 <p>Explore any contract</p>
 
 
-<table class="table">
-    <thead>
-    <tr>
-        <th>Info</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr>
-        <td></td>
-    </tr>
-    </tbody>
-</table>
-@{
-
-}
-
-@*<div>@codeJson</div>
-<div>@csharp</div>*@
+<h2>@contractAddress</h2>
 
 <table class="table">
     <thead>
@@ -58,12 +41,6 @@
     }
     </tbody>
 </table>
-
-@*<div>@byteArray.Length</div>*@
-@*<div>@contractName</div>*@
-@*<div>@properties.ElementAt(0).PropertyName</div>*@
-
-
 
 @functions {
     string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
@@ -111,16 +88,4 @@
             }
         }
     }
-
-    //public class PropInfo
-    //{
-    //    public string PropertyName { get; set; }
-    //    public string PropertyType { get; set; }
-
-    //    public PropInfo(string propertyName, string propertyType)
-    //    {
-    //        PropertyName = propertyName;
-    //        PropertyType = propertyType;
-    //    }
-    //}
 }
