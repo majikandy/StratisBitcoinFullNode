@@ -3,6 +3,7 @@ using System.Linq;
 using System.Net.Mime;
 using Microsoft.AspNetCore.Blazor.Server;
 using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.Builder.Internal;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.Extensions.Configuration;
@@ -117,8 +118,6 @@ namespace Stratis.Bitcoin.Features.Api
 
             app.UseMvc();
 
-            app.UseBlazor<blazor.Client.Program>();
-
             // Enable middleware to serve generated Swagger as a JSON endpoint.
             app.UseSwagger();
 
@@ -128,6 +127,8 @@ namespace Stratis.Bitcoin.Features.Api
                 c.DefaultModelRendering(ModelRendering.Model);
                 c.SwaggerEndpoint("/swagger/v1/swagger.json", "Stratis.Bitcoin.Api V1");
             });
+
+            app.UseBlazor<blazor.Client.Program>();
         }
     }
 }

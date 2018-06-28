@@ -7,7 +7,7 @@
 
 <h1>Current Players</h1>
 
-<p>This component show all the current players.</p>
+<p>This component shows all the current players.</p>
 
 
 @if (players == null)
@@ -19,26 +19,35 @@ else
     <table class="table">
         <thead>
             <tr>
-                <th>Players</th>
+                <th>Player</th>
+                <th>Assigned Team</th>
             </tr>
         </thead>
         <tbody>
-            @foreach (var player in players.Split(','))
-            {
-                <tr>
-                    <td>@player</td>
-                </tr>
-            }
+
+        @for (int i = 0; i < players.Length; i++)
+        {
+            <tr>
+                <td>@players[i]</td>
+                <td>@assignedTeams[i]</td>
+            </tr>
+        }
         </tbody>
     </table>
 }
 
 @functions {
-    string players = "none";
+    string[] players;
+    string[] assignedTeams;
     string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
 
     protected override async Task OnInitAsync()
     {
-        players = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersNickNames&DataType=String");
+        var playersCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersNickNames&DataType=String");
+        var assignedTeamsCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=AssignedTeamsCsv&DataType=String");
+
+        players = playersCsv.Trim('"').Split(',');
+        assignedTeams = assignedTeamsCsv.Trim('"').Split(',');
+
     }
 }
