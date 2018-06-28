@@ -9,7 +9,7 @@ using Xunit;
 
 namespace Stratis.Bitcoin.Features.Wallet.Tests
 {
-    class Class1
+    public class Class1
     {
         [Fact]
         public void test()
