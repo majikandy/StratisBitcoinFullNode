@@ -47,7 +47,7 @@ Contract address: <input type="text" bind="@contractAddress" />
                 @for(int i = 0; i < publicMethods.Count; i++)
                 {
                     <tr>
-                        <td>@publicMethods[i];</td>
+                        <td>@publicMethods[i]</td>
                     </tr>
                 }
             </tbody>
@@ -128,13 +128,15 @@ Contract address: <input type="text" bind="@contractAddress" />
         try
         {
             storageStrings = new Dictionary<string, string>();
+            publicMethods = null;
+
             codeJson = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/code?address=" +
-                                                       contractAddress);
+                                                   contractAddress);
 
             var code = JObject.Parse(codeJson);
 
             csharp = code["csharp"].Value<string>();
-            GetPublicMethods();
+            await GetPublicMethods();
 
 
             await GetStorageValues(csharp, "GetString", "String", storageStrings);
@@ -159,7 +161,7 @@ Contract address: <input type="text" bind="@contractAddress" />
         }
     }
 
-    private void GetPublicMethods()
+    private Task GetPublicMethods()
     {
         var publicMethodsRegex = $@"public ([^)]*)";
         var matches = Regex.Matches(csharp, publicMethodsRegex);
@@ -174,6 +176,7 @@ Contract address: <input type="text" bind="@contractAddress" />
                 publicMethods.Add(matchValue);
             }
         }
+        return Task.CompletedTask;
     }
 
     private async Task GetStorageValues(string csharp, string perisistentStateMethodName, string dataType, IDictionary<string, string> storageDictionary)
