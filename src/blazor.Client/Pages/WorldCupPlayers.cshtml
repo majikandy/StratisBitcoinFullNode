@@ -16,11 +16,12 @@
 }
 else
 {
-    <table class="table">
+    <table class="table table-striped table-sm table-bordered">
         <thead>
             <tr>
                 <th>Player</th>
                 <th>Assigned Team</th>
+                <th>Address</th>
             </tr>
         </thead>
         <tbody>
@@ -30,6 +31,7 @@ else
             <tr>
                 <td>@players[i]</td>
                 <td>@assignedTeams[i]</td>
+                <td>@playersAddresses[i]</td>
             </tr>
         }
         </tbody>
@@ -39,15 +41,18 @@ else
 @functions {
     string[] players;
     string[] assignedTeams;
+    string[] playersAddresses;
     string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
 
     protected override async Task OnInitAsync()
     {
         var playersCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersNickNames&DataType=String");
         var assignedTeamsCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=AssignedTeamsCsv&DataType=String");
+        var playerAddressesCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersCsv&DataType=String");
 
         players = playersCsv.Trim('"').Split(',');
         assignedTeams = assignedTeamsCsv.Trim('"').Split(',');
+        playersAddresses = playerAddressesCsv.Trim('"').Split(',');
 
     }
 }

@@ -28,6 +28,33 @@ Contract address: <input type="text" bind="@contractAddress" />
 {
     <div>Collecting storage values...</div>
 }
+
+@if (error != null)
+{
+    <div>@error</div>
+}
+
+@if (publicMethods != null)
+{
+    <div class="table-responsive-md">
+        <table class="table table-striped">
+            <thead>
+            <tr>
+                <th>Public methods</th>
+            </tr>
+            </thead>
+            <tbody>
+                @for(int i = 0; i < publicMethods.Count; i++)
+                {
+                    <tr>
+                        <td>@publicMethods[i];</td>
+                    </tr>
+                }
+            </tbody>
+        </table>
+    </div>
+}
+
 @if (storageStrings != null && storageStrings.Count != 0)
 {
     <div class="table-responsive-md">
@@ -50,14 +77,14 @@ Contract address: <input type="text" bind="@contractAddress" />
                             @key
                             @if (value.StartsWith("["))
                             {
-                                <br/><span class="badge badge-pill badge-dark">List</span>
+                                <br /><span class="badge badge-pill badge-dark">List</span>
                             }
                         </td>
                         <td>
                             @if (value.StartsWith("["))
                             {
                                 var list = value.Trim('[').Trim(']').Split(',');
-                                
+
                                 for (int j = 0; j < list.Length; j++)
                                 {
                                     @list[j] <br />
@@ -76,105 +103,132 @@ Contract address: <input type="text" bind="@contractAddress" />
 }
 
 @functions {
-string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
+    string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
 
-string contractName;
+    string contractName;
 
-string codeJson;
-string csharp;
+    string codeJson;
+    string csharp;
 
     bool gettingInfo = false;
 
-Dictionary<string, string> storageStrings;
+    Dictionary<string, string> storageStrings;
+    private string error = "";
 
+    List<string> publicMethods;
 
-protected override async Task OnInitAsync()
-{
-}
-
-private async Task GetAllContractInfo()
-{
-    gettingInfo = true;
-    try
+    protected override async Task OnInitAsync()
     {
-        storageStrings = new Dictionary<string, string>();
-        codeJson = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/code?address=" +
-                                                   contractAddress);
-
-        var code = JObject.Parse(codeJson);
-
-        csharp = code["csharp"].Value<string>();
-
-        await GetStorageValues(csharp, "GetString", "String", storageStrings);
-        await GetStorageValues(csharp, "GetAddress", "Address", storageStrings);
-        await GetStorageValues(csharp, "GetInt64", "Long", storageStrings);
-        await GetStorageValues(csharp, "GetUInt64", "Ulong", storageStrings);
-        await GetStorageValues(csharp, "GetInt32", "Int", storageStrings);
-        await GetStorageValues(csharp, "GetUInt32", "Uint", storageStrings);
-
-
-        await GetStorageListValues(csharp, "GetStringList", "String", storageStrings);
-        await GetStorageListValues(csharp, "GetAddressList", "Address", storageStrings);
     }
-    finally
-    {
-        gettingInfo = false;
-    }
-}
 
-private async Task GetStorageValues(string csharp, string perisistentStateMethodName, string dataType, IDictionary<string, string> storageDictionary)
-{
-    var stringRegex = $@"base.PersistentState.{perisistentStateMethodName}\(""([^""]*)";
-    var matches = Regex.Matches(csharp, stringRegex);
-
-    foreach (Match match in matches)
+    private async Task GetAllContractInfo()
     {
-        string storageKey = match.Groups[1].Value;
+        gettingInfo = true;
+        error = "";
         try
         {
-            var value = await HttpClient.GetStringAsync(
-                $"http://localhost:38220/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}&DataType={dataType}");
-            storageDictionary.Add(storageKey, value);
+            storageStrings = new Dictionary<string, string>();
+            codeJson = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/code?address=" +
+                                                       contractAddress);
+
+            var code = JObject.Parse(codeJson);
+
+            csharp = code["csharp"].Value<string>();
+            GetPublicMethods();
+
+
+            await GetStorageValues(csharp, "GetString", "String", storageStrings);
+            await GetStorageValues(csharp, "GetAddress", "Address", storageStrings);
+            await GetStorageValues(csharp, "GetInt64", "Long", storageStrings);
+            await GetStorageValues(csharp, "GetUInt64", "Ulong", storageStrings);
+            await GetStorageValues(csharp, "GetInt32", "Int", storageStrings);
+            await GetStorageValues(csharp, "GetUInt32", "Uint", storageStrings);
+
+
+            await GetStorageListValues(csharp, "GetStringList", "String", storageStrings);
+            await GetStorageListValues(csharp, "GetAddressList", "Address", storageStrings);
+
         }
-        catch
+        catch (Exception e)
         {
-            storageDictionary.Add(storageKey, "null");
+            error = e.Message;
+        }
+        finally
+        {
+            gettingInfo = false;
         }
     }
-}
 
-private async Task GetStorageListValues(string csharp, string perisistentStateMethodName, string dataType, IDictionary<string, string> storageDictionary)
-{
-    var stringRegex = $@"base.PersistentState.{perisistentStateMethodName}\(""([^""]*)";
-    var matches = Regex.Matches(csharp, stringRegex);
-
-    foreach (Match match in matches)
+    private void GetPublicMethods()
     {
-        string storageKey = match.Groups[1].Value;
-        string listValue = "";
-        try
-        {
-            bool found = true;
+        var publicMethodsRegex = $@"public ([^)]*)";
+        var matches = Regex.Matches(csharp, publicMethodsRegex);
 
-            int i = 0;
-            while (true)
+        publicMethods = new List<string>();
+
+        foreach (Match match in matches)
+        {
+            string matchValue = match.Groups[1].Value;
+            if (!matchValue.Contains("base.PersistentState"))
             {
-                var value = await HttpClient.GetStringAsync($"http://localhost:38220/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}[{i}]&DataType={dataType}");
-                if (string.IsNullOrWhiteSpace(value) || value == "null" || i == 1000)
-                {
-                    throw new Exception();
-                }
-                listValue += "," + value;
-                i++;
+                publicMethods.Add(matchValue);
             }
-
-        }
-        catch
-        {
-            storageDictionary.Add(storageKey, "[ " + listValue.Trim(',') + " ]");
         }
     }
-}
+
+    private async Task GetStorageValues(string csharp, string perisistentStateMethodName, string dataType, IDictionary<string, string> storageDictionary)
+    {
+        var stringRegex = $@"base.PersistentState.{perisistentStateMethodName}\(""([^""]*)";
+        var matches = Regex.Matches(csharp, stringRegex);
+
+        foreach (Match match in matches)
+        {
+            string storageKey = match.Groups[1].Value;
+            try
+            {
+                var value = await HttpClient.GetStringAsync(
+                    $"http://localhost:38220/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}&DataType={dataType}");
+                storageDictionary.Add(storageKey, value);
+            }
+            catch
+            {
+                storageDictionary.Add(storageKey, "null");
+            }
+        }
+    }
+
+    private async Task GetStorageListValues(string csharp, string perisistentStateMethodName, string dataType, IDictionary<string, string> storageDictionary)
+    {
+        var stringRegex = $@"base.PersistentState.{perisistentStateMethodName}\(""([^""]*)";
+        var matches = Regex.Matches(csharp, stringRegex);
+
+        foreach (Match match in matches)
+        {
+            string storageKey = match.Groups[1].Value;
+            string listValue = "";
+            try
+            {
+                bool found = true;
+
+                int i = 0;
+                while (true)
+                {
+                    var value = await HttpClient.GetStringAsync($"http://localhost:38220/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}[{i}]&DataType={dataType}");
+                    if (string.IsNullOrWhiteSpace(value) || value == "null" || i == 1000)
+                    {
+                        throw new Exception();
+                    }
+                    listValue += "," + value;
+                    i++;
+                }
+
+            }
+            catch
+            {
+                storageDictionary.Add(storageKey, "[ " + listValue.Trim(',') + " ]");
+            }
+        }
+    }
 
 
 
