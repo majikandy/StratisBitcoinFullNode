@@ -44,7 +44,7 @@ Contract address: <input type="text" bind="@contractAddress" />
             </tr>
             </thead>
             <tbody>
-                @for(int i = 0; i < publicMethods.Count; i++)
+                @for(int i = 1; i < publicMethods.Count; i++)
                 {
                     <tr>
                         <td>@publicMethods[i]</td>
@@ -173,7 +173,33 @@ Contract address: <input type="text" bind="@contractAddress" />
             string matchValue = match.Groups[1].Value;
             if (!matchValue.Contains("base.PersistentState"))
             {
-                publicMethods.Add(matchValue);
+                var parameters = matchValue.Split(',');
+                string methodNameAndFirstParam = parameters[0];
+                int indexOfSpace = methodNameAndFirstParam.IndexOf(" ");
+                var returnType = methodNameAndFirstParam.Substring(0, indexOfSpace);
+                int indexOfOpenParenthesis = methodNameAndFirstParam.IndexOf("(");
+                int lengthOfMethodName = (indexOfOpenParenthesis - indexOfSpace) - 1;
+                //var methodName = methodNameAndFirstParam.Substring(indexOfSpace+1, lengthOfMethodName);
+                //var methodName = methodNameAndFirstParam + " " + indexOfSpace + " " + lengthOfMethodName;
+                var methodName = methodNameAndFirstParam;
+
+                //var returnTypeAndMethodName = parameters[0].Substring(0, indexOfOpenParenthesis-1);
+                //parameters[0] = parameters[0].Substring(indexOfOpenParenthesis+1); //set the first param without method name
+
+                string tempParamsDebug = " {";
+
+                for (int i = 1; i < parameters.Length; i++)
+                {
+                    int indexOfParamSpace = parameters[i].IndexOf(" ");
+                    var paramType = parameters[i].Substring(0, indexOfParamSpace);
+                    var paramName = parameters[i].Substring(indexOfParamSpace + 1);
+                    tempParamsDebug += " t:" + paramType + " n:" + paramName + " | ";
+                }
+                tempParamsDebug += "} " + returnType + " ..... " +  methodName;
+
+                //publicMethods.Add(matchValue + indexOfSpace + " returnType: " + returnType + " methodname: " + methodName + " params: " + tempParamsDebug);
+                publicMethods.Add(tempParamsDebug);
+
             }
         }
         return Task.CompletedTask;
