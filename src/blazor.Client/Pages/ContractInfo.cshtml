@@ -232,7 +232,7 @@ Contract address: <input type="text" bind="@contractAddress" />
                 int i = 0;
                 while (true)
                 {
-                    var value = await HttpClient.GetStringAsync($"http://localhost:38220/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}[{i}]&DataType={dataType}");
+                    var value = await HttpClient.GetStringAsync($"/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}[{i}]&DataType={dataType}");
                     if (string.IsNullOrWhiteSpace(value) || value == "null" || i == 1000)
                     {
                         throw new Exception();
