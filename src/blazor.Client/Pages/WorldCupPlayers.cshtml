@@ -5,14 +5,14 @@
 @page "/WorldCupPlayers"
 @inject HttpClient HttpClient
 
-<h1>Current Players</h1>
+<h1>World cup players</h1>
 
-<p>This component shows all the current players.</p>
+<p>1st place: 70%, 2nd place: 20%, 3rd place: 10% - see current <a href="https://chainz.cryptoid.info/strat/address.dws?SUafKZov6BmRgsFxtMhEKoPSWxEdodjEqd.htm">prize fund</a>.</p>
 
 
 @if (players == null)
 {
-    <p><em>Loading...</em></p>
+    <p><em>Retreiving contract information...</em></p>
 }
 else
 {
@@ -21,18 +21,18 @@ else
             <tr>
                 <th>Player</th>
                 <th>Assigned Team</th>
-                <th>Address</th>
+                @*<th>Address</th>*@
             </tr>
         </thead>
         <tbody>
 
         @for (int i = 0; i < players.Length; i++)
         {
-            <tr>
-                <td>@players[i]</td>
-                <td>@assignedTeams[i]</td>
-                <td>@playersAddresses[i]</td>
-            </tr>
+            <tr style="@getStyle(assignedTeams[i])">
+            <td>@players[i]</td>
+            <td>@assignedTeams[i]</td>
+            @*<td>@playersAddresses[i]</td>*@
+        </tr>
         }
         </tbody>
     </table>
@@ -43,6 +43,8 @@ else
     string[] assignedTeams;
     string[] playersAddresses;
     string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
+
+    List<string> remainingTeams = new List<string>() {"brazil", "belgium", "france", "uruguay", "england", "sweden", "russia", "croatia"};
 
     protected override async Task OnInitAsync()
     {
@@ -55,4 +57,14 @@ else
         playersAddresses = playerAddressesCsv.Trim('"').Split(',');
 
     }
+
+    private string getStyle(string assignedTeam)
+    {
+        if (remainingTeams.Contains(assignedTeam))
+        {
+            return string.Empty;
+        }
+        return "text-decoration-line: line-through; color:red";
+    }
+
 }
