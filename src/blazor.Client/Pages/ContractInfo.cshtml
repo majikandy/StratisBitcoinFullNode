@@ -206,7 +206,7 @@ Contract address: <input type="text" bind="@contractAddress" />
             try
             {
                 var value = await HttpClient.GetStringAsync(
-                    $"http://localhost:38220/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}&DataType={dataType}");
+                    $"/api/SmartContracts/storage?ContractAddress={contractAddress}&StorageKey={storageKey}&DataType={dataType}");
                 storageDictionary.Add(storageKey, value);
             }
             catch
