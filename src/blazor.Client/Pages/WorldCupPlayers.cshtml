@@ -48,9 +48,9 @@ else
 
     protected override async Task OnInitAsync()
     {
-        var playersCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersNickNames&DataType=String");
-        var assignedTeamsCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=AssignedTeamsCsv&DataType=String");
-        var playerAddressesCsv = await HttpClient.GetStringAsync("http://localhost:38220/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersCsv&DataType=String");
+        var playersCsv = await HttpClient.GetStringAsync("/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersNickNames&DataType=String");
+        var assignedTeamsCsv = await HttpClient.GetStringAsync("/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=AssignedTeamsCsv&DataType=String");
+        var playerAddressesCsv = await HttpClient.GetStringAsync("/api/SmartContracts/storage?ContractAddress=" + contractAddress + "&StorageKey=PlayersCsv&DataType=String");
 
         players = playersCsv.Trim('"').Split(',');
         assignedTeams = assignedTeamsCsv.Trim('"').Split(',');
