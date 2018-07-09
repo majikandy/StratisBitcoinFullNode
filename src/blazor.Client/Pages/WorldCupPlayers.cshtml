@@ -28,11 +28,14 @@ else
 
         @for (int i = 0; i < players.Length; i++)
         {
-            <tr style="@getStyle(assignedTeams[i])">
-            <td>@players[i]</td>
-            <td>@assignedTeams[i]</td>
-            @*<td>@playersAddresses[i]</td>*@
-        </tr>
+            if (remainingTeams.Contains(assignedTeams[i]))
+            {
+                <tr style="@getStyle(assignedTeams[i])">
+                    <td>@players[i]</td>
+                    <td>@assignedTeams[i]</td>
+                    @*<td>@playersAddresses[i]</td>*@
+                </tr>
+            }
         }
         </tbody>
     </table>
@@ -44,7 +47,7 @@ else
     string[] playersAddresses;
     string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
 
-    List<string> remainingTeams = new List<string>() {"brazil", "belgium", "france", "uruguay", "england", "sweden", "russia", "croatia"};
+    List<string> remainingTeams = new List<string>() {"belgium", "france", "england", "croatia"};
 
     protected override async Task OnInitAsync()
     {
