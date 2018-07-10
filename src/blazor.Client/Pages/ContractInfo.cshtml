@@ -25,7 +25,7 @@ Contract address: <input type="text" bind="@contractAddress" />
     <div>@error</div>
 }
 
-@*@if (publicMethods != null)
+@if (publicMethods != null)
 {
     <div class="table-responsive-md">
         <table class="table table-striped">
@@ -44,7 +44,7 @@ Contract address: <input type="text" bind="@contractAddress" />
             </tbody>
         </table>
     </div>
-}*@
+}
 
 @if (storageStrings != null && storageStrings.Count != 0)
 {
@@ -92,6 +92,10 @@ Contract address: <input type="text" bind="@contractAddress" />
         </table>
     </div>
 }
+<br/><br/>
+<pre class="prettyprint linenums">
+@csharp
+</pre>
 
 @functions {
     string contractAddress = "mtLrJ42YSW3DEXV1oaaRB5VEg2ULg4rN7N";
