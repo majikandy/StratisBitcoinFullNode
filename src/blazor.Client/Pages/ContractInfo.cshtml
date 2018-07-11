@@ -25,6 +25,15 @@ Contract address: <input type="text" bind="@contractAddress" />
     <div>@error</div>
 }
 
+@if (!string.IsNullOrEmpty(contractBalance))
+{
+    <div>
+        Address: @contractAddress<br/>
+        Balance: @contractBalance<br/>
+    </div>
+}
+<br/>
+
 @if (publicMethods != null)
 {
     <div class="table-responsive-md">
@@ -103,6 +112,7 @@ Contract address: <input type="text" bind="@contractAddress" />
     string contractName;
 
     string codeJson;
+    string contractBalance;
     string csharp;
 
     bool gettingInfo = false;
@@ -126,6 +136,8 @@ Contract address: <input type="text" bind="@contractAddress" />
             publicMethods = null;
 
             codeJson = await HttpClient.GetStringAsync("/api/SmartContracts/code?address=" + contractAddress);
+
+            contractBalance = await HttpClient.GetStringAsync("/api/SmartContracts/balance?address=" + contractAddress);
 
             var code = JObject.Parse(codeJson);
 

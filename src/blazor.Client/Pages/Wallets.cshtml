@@ -10,8 +10,8 @@
 
 <button class="btn btn-primary" onclick="@CreateWallet">Create wallet</button>
 
-passowrd: <input type="text" bind="@password" />
 wallet name: <input type="text" bind="@walletname" />
+password: <input type="text" bind="@password" />
 
 <br/>
 <strong>@working</strong>
@@ -95,7 +95,7 @@ wallet name: <input type="text" bind="@walletname" />
 
     protected override async Task OnInitAsync()
     {
-        walletFileModel = await HttpClient.GetJsonAsync<WalletFileModel>("http://localhost:38220/api/Wallet/files");
+        walletFileModel = await HttpClient.GetJsonAsync<WalletFileModel>("/api/Wallet/files");
 
         wallets = new Dictionary<string, balances>();
 
@@ -103,7 +103,7 @@ wallet name: <input type="text" bind="@walletname" />
         {
             var walletname = walletsFile.Split('.').First().Replace("\\", "").Replace("\"", "");
 
-            WalletBalanceModel balance = await HttpClient.GetJsonAsync<WalletBalanceModel>("http://localhost:38220/api/Wallet/balance?WalletName=" + walletname + "&AccountName=account%200");
+            WalletBalanceModel balance = await HttpClient.GetJsonAsync<WalletBalanceModel>("/api/Wallet/balance?WalletName=" + walletname + "&AccountName=account%200");
             var b = balance.Balances.Any() ? balance.Balances.First().AmountConfirmed : 0;
 
 
@@ -115,9 +115,9 @@ wallet name: <input type="text" bind="@walletname" />
     {
         working = "Creating wallet...";
 
-        elementnemonic = await HttpClient.GetStringAsync("http://localhost:38220/api/Wallet/mnemonic");
+        elementnemonic = await HttpClient.GetStringAsync("/api/Wallet/mnemonic");
         nemonic = elementnemonic.Replace("\\", "").Replace("\"", "");
-        await HttpClient.SendJsonAsync(HttpMethod.Post, "http://localhost:38220/api/Wallet/create", new WalletCreationRequest() { Mnemonic = nemonic, Name = walletname, Password = password });
+        await HttpClient.SendJsonAsync(HttpMethod.Post, "/api/Wallet/create", new WalletCreationRequest() { Mnemonic = nemonic, Name = walletname, Password = password });
 
         await this.OnInitAsync();
 
@@ -129,7 +129,7 @@ wallet name: <input type="text" bind="@walletname" />
     private async void UnusedAddress(string wallet)
     {
 
-        var address = await HttpClient.GetStringAsync("http://localhost:38220/api/Wallet/unusedaddress?WalletName=" + wallet.Split('.').First() + "&AccountName=account%200");
+        var address = await HttpClient.GetStringAsync("/api/Wallet/unusedaddress?WalletName=" + wallet.Split('.').First() + "&AccountName=account%200");
         receiveAddress = address;
 
         GetHistory(wallet);
@@ -140,7 +140,7 @@ wallet name: <input type="text" bind="@walletname" />
     private async void GetHistory(string wallet)
     {
 
-        walletHistoryModel  = await HttpClient.GetJsonAsync<WalletHistoryModel>("http://localhost:38220/api/Wallet/history?WalletName=" + wallet.Split('.').First() + "&AccountName=account%200");
+        walletHistoryModel  = await HttpClient.GetJsonAsync<WalletHistoryModel>("/api/Wallet/history?WalletName=" + wallet.Split('.').First() + "&AccountName=account%200");
 
         this.StateHasChanged();
     }
