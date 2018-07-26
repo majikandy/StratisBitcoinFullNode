@@ -9,14 +9,20 @@ namespace Stratis.Bitcoin.Features.Consensus
     public class UnspentOutputSet
     {
         private Dictionary<uint256, UnspentOutputs> unspents;
+        private Dictionary<uint256, UnspentOutputs> allSpentsAndUnspents;
 
         public TxOut GetOutputFor(TxIn txIn)
         {
             UnspentOutputs unspent = this.unspents.TryGet(txIn.PrevOut.Hash);
-            if (unspent == null)
-                return null;
 
-            return unspent.TryGetOutput(txIn.PrevOut.N);
+            return unspent?.TryGetOutput(txIn.PrevOut.N);
+        }
+
+        public TxOut GetSpentsAndUnspentsOutputFor(TxIn txIn)
+        {
+            UnspentOutputs all = this.allSpentsAndUnspents.TryGet(txIn.PrevOut.Hash);
+
+            return all?.TryGetOutput(txIn.PrevOut.N);
         }
 
         public bool HaveInputs(Transaction tx)
@@ -51,25 +57,34 @@ namespace Stratis.Bitcoin.Features.Consensus
             }
 
             this.unspents.AddOrReplace(transaction.GetHash(), new UnspentOutputs((uint)height, transaction));
+            this.allSpentsAndUnspents.Add(transaction.GetHash(), new UnspentOutputs((uint)height, transaction));
         }
 
         public void SetCoins(UnspentOutputs[] coins)
         {
             this.unspents = new Dictionary<uint256, UnspentOutputs>(coins.Length);
+            this.allSpentsAndUnspents = new Dictionary<uint256, UnspentOutputs>(coins.Length);
             foreach (UnspentOutputs coin in coins)
             {
                 if (coin != null)
+                {
                     this.unspents.Add(coin.TransactionId, coin);
+                    this.allSpentsAndUnspents.Add(coin.TransactionId, coin);
+                }
             }
         }
 
         public void TrySetCoins(UnspentOutputs[] coins)
         {
             this.unspents = new Dictionary<uint256, UnspentOutputs>(coins.Length);
+            this.allSpentsAndUnspents = new Dictionary<uint256, UnspentOutputs>(coins.Length);
             foreach (UnspentOutputs coin in coins)
             {
                 if (coin != null)
+                {
                     this.unspents.TryAdd(coin.TransactionId, coin);
+                    this.allSpentsAndUnspents.TryAdd(coin.TransactionId, coin);
+                }
             }
         }
 

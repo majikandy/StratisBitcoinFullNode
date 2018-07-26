@@ -49,7 +49,7 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
 
             long sigOpsCost = 0;
             Money fees = Money.Zero;
-            var checkInputs = new List<Task<bool>>();
+
             for (int txIndex = 0; txIndex < block.Transactions.Count; txIndex++)
             {
                 this.Parent.PerformanceCounter.AddProcessedTransactions(1);
@@ -95,40 +95,48 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
                     {
                         this.CheckInputs(tx, view, index.Height);
                         fees += view.GetValueIn(tx) - tx.TotalOut;
-                        var txData = new PrecomputedTransactionData(tx);
-                        for (int inputIndex = 0; inputIndex < tx.Inputs.Count; inputIndex++)
-                        {
-                            this.Parent.PerformanceCounter.AddProcessedInputs(1);
-                            TxIn input = tx.Inputs[inputIndex];
-                            int inputIndexCopy = inputIndex;
-                            TxOut txout = view.GetOutputFor(input);
-                            var checkInput = new Task<bool>(() =>
-                            {
-                                var checker = new TransactionChecker(tx, inputIndexCopy, txout.Value, txData);
-                                var ctx = new ScriptEvaluationContext(this.Parent.Network);
-                                ctx.ScriptVerify = flags.ScriptFlags;
-                                bool verifyScriptResult = ctx.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
-
-                                if (verifyScriptResult == false)
-                                {
-                                    this.Logger.LogTrace("Verify script for transaction '{0}' failed, ScriptSig = '{1}', ScriptPubKey = '{2}', script evaluation error = '{3}'", tx.GetHash(), input.ScriptSig, txout.ScriptPubKey, ctx.Error);
-                                }
-
-                                return verifyScriptResult;
-                            });
-                            checkInput.Start();
-                            checkInputs.Add(checkInput);
-                        }
                     }
+                    
                 }
 
                 this.UpdateCoinView(context, tx);
             }
 
+            var checkInputs = new List<Task<bool>>();
+            for (int txIndex = 0; txIndex < block.Transactions.Count; txIndex++)
+            {
+                Transaction tx = block.Transactions[txIndex];
+                if (!this.IsProtocolTransaction(tx))
+                {
+                    var txData = new PrecomputedTransactionData(tx);
+                    for (int inputIndex = 0; inputIndex < tx.Inputs.Count; inputIndex++)
+                    {
+                        //this.Parent.PerformanceCounter.AddProcessedInputs(1);
+                        TxIn input = tx.Inputs[inputIndex];
+                        int inputIndexCopy = inputIndex;
+                        TxOut txout = view.GetSpentsAndUnspentsOutputFor(input);
+                        var checkInput = new Task<bool>(() =>
+                        {
+                            var checker = new TransactionChecker(tx, inputIndexCopy, txout.Value, txData);
+                            var ctx = new ScriptEvaluationContext(this.Parent.Network);
+                            ctx.ScriptVerify = flags.ScriptFlags;
+                            bool verifyScriptResult = ctx.VerifyScript(input.ScriptSig, txout.ScriptPubKey, checker);
+
+                            if (verifyScriptResult == false)
+                            {
+                                this.Logger.LogTrace("Verify script for transaction '{0}' failed, ScriptSig = '{1}', ScriptPubKey = '{2}', script evaluation error = '{3}'", tx.GetHash(), input.ScriptSig, txout.ScriptPubKey, ctx.Error);
+                            }
+
+                            return verifyScriptResult;
+                        });
+                        checkInput.Start();
+                        checkInputs.Add(checkInput);
+                    }
+                }
+            }
+
             if (!context.SkipValidation)
             {
-                this.CheckBlockReward(context, fees, index.Height, block);
-
                 foreach (Task<bool> checkInput in checkInputs)
                 {
                     if (await checkInput.ConfigureAwait(false))
@@ -137,6 +145,11 @@ namespace Stratis.Bitcoin.Features.Consensus.Rules.CommonRules
                     this.Logger.LogTrace("(-)[BAD_TX_SCRIPT]");
                     ConsensusErrors.BadTransactionScriptError.Throw();
                 }
+            }
+
+            if (!context.SkipValidation)
+            {
+                this.CheckBlockReward(context, fees, index.Height, block);
             }
             else this.Logger.LogTrace("BIP68, SigOp cost, and block reward validation skipped for block at height {0}.", index.Height);
 
