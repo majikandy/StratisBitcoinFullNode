@@ -1,4 +1,5 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -54,6 +55,22 @@ namespace Stratis.Bitcoin.Features.MemoryPool.Tests
         /// <inheritdoc />
         public List<Transaction> SrcTxs { get; set; }
     }
+    
+    public class DateTimeProviderSet : DateTimeProvider
+    {
+        public long time;
+        public DateTime timeutc;
+
+        public override long GetTime()
+        {
+            return this.time;
+        }
+
+        public override DateTime GetUtcNow()
+        {
+            return this.timeutc;
+        }
+    }
 
     /// <summary>
     /// Factory for creating the test chain.
@@ -81,25 +98,40 @@ namespace Stratis.Bitcoin.Features.MemoryPool.Tests
             var chain = new ConcurrentChain(network);
             InMemoryCoinView inMemoryCoinView = new InMemoryCoinView(chain.Tip.HashBlock);
 
-            var cachedCoinView = new CachedCoinView(inMemoryCoinView, DateTimeProvider.Default, loggerFactory);
+            var cachedCoinView = new CachedCoinView(inMemoryCoinView, dateTimeProvider, loggerFactory);
             var networkPeerFactory = new NetworkPeerFactory(network, dateTimeProvider, loggerFactory, new PayloadProvider().DiscoverPayloads(), new SelfEndpointTracker(loggerFactory));
 
-            var peerAddressManager = new PeerAddressManager(DateTimeProvider.Default, nodeSettings.DataFolder, loggerFactory, new SelfEndpointTracker(loggerFactory));
+            var peerAddressManager = new PeerAddressManager(dateTimeProvider, nodeSettings.DataFolder, loggerFactory, new SelfEndpointTracker(loggerFactory));
             var peerDiscovery = new PeerDiscovery(new AsyncLoopFactory(loggerFactory), loggerFactory, network, networkPeerFactory, new NodeLifetime(), nodeSettings, peerAddressManager);
             var connectionSettings = new ConnectionManagerSettings(nodeSettings);
             var selfEndpointTracker = new SelfEndpointTracker(loggerFactory);
             var connectionManager = new ConnectionManager(dateTimeProvider, loggerFactory, network, networkPeerFactory, nodeSettings, new NodeLifetime(), new NetworkPeerConnectionParameters(), peerAddressManager, new IPeerConnector[] { }, peerDiscovery, selfEndpointTracker, connectionSettings, new VersionProvider());
-            var chainState = new ChainState(new InvalidBlockHashStore(dateTimeProvider));
+            //var chainState = new ChainState(new InvalidBlockHashStore(dateTimeProvider));
             var peerBanning = new PeerBanning(connectionManager, loggerFactory, dateTimeProvider, peerAddressManager);
             var deployments = new NodeDeployments(network, chain);
+            
+            var genesis = network.GetGenesis();
+            var chainState = new ChainState(new InvalidBlockHashStore(dateTimeProvider))
+            {
+                BlockStoreTip = new ChainedHeader(genesis.Header, genesis.GetHash(), 0)
+            };
+            
             ConsensusRuleEngine consensusRules = new PowConsensusRuleEngine(network, loggerFactory, dateTimeProvider, chain, deployments, consensusSettings, new Checkpoints(), inMemoryCoinView, chainState).Register();
 
             var consensus = new ConsensusManager(network, loggerFactory, chainState, new HeaderValidator(consensusRules, loggerFactory),
                 new IntegrityValidator(consensusRules, loggerFactory), new PartialValidator(consensusRules, loggerFactory),new Checkpoints(), consensusSettings, consensusRules,
                 new Mock<IFinalizedBlockInfo>().Object, new Signals.Signals(), peerBanning, new Mock<IInitialBlockDownloadState>().Object, chain, new Mock<IBlockPuller>().Object, new Mock<IBlockStore>().Object);
 
+            await consensus.InitializeAsync(chainState.BlockStoreTip);
+            
             var blockPolicyEstimator = new BlockPolicyEstimator(new MempoolSettings(nodeSettings), loggerFactory, nodeSettings);
-            var mempool = new TxMempool(dateTimeProvider, blockPolicyEstimator, loggerFactory, nodeSettings);
+            
+            var dateTimeProviderSet = new DateTimeProviderSet
+            {
+                time = dateTimeProvider.GetTime(),
+                timeutc = dateTimeProvider.GetUtcNow()
+            };
+            var mempool = new TxMempool(dateTimeProviderSet, new BlockPolicyEstimator(new MempoolSettings(nodeSettings), loggerFactory, nodeSettings), loggerFactory, nodeSettings);
             var mempoolLock = new MempoolSchedulerLock();
 
             var minerSettings = new MinerSettings(nodeSettings);
@@ -107,9 +139,19 @@ namespace Stratis.Bitcoin.Features.MemoryPool.Tests
             // Simple block creation, nothing special yet:
             PowBlockDefinition blockDefinition = new PowBlockDefinition(consensus, dateTimeProvider, loggerFactory, mempool, mempoolLock, minerSettings, network, consensusRules);
             BlockTemplate newBlock = blockDefinition.Build(chain.Tip, scriptPubKey);
-            chain.SetTip(newBlock.Block.Header);
+            //chain.SetTip(newBlock.Block.Header);
 
-            await consensus.BlockMinedAsync(newBlock.Block);
+            uint nonce = 0;
+            
+            /*while (!newBlock.Block.CheckProofOfWork())
+                newBlock.Block.Header.Nonce = ++nonce;
+
+            // Serialization sets the BlockSize property.
+            newBlock.Block = Block.Load(newBlock.Block.ToBytes(), network);
+            
+            await consensus.BlockMinedAsync(newBlock.Block);*/
+            
+           // chain.SetTip(newBlock.Block.Header);
 
             List<BlockInfo> blockinfo = CreateBlockInfoList();
 
@@ -118,32 +160,33 @@ namespace Stratis.Bitcoin.Features.MemoryPool.Tests
             int baseheight = 0;
             var blocks = new List<Block>();
             var srcTxs = new List<Transaction>();
+            
+            
+            
             for (int i = 0; i < blockinfo.Count; ++i)
             {
-                Block currentBlock = Block.Load(newBlock.Block.ToBytes(network.Consensus.ConsensusFactory), network);
+                Block currentBlock = network.CreateBlock();
                 currentBlock.Header.HashPrevBlock = chain.Tip.HashBlock;
-                currentBlock.Header.Version = 1;
                 currentBlock.Header.Time = Utils.DateTimeToUnixTime(chain.Tip.GetMedianTimePast()) + 1;
-
-                Transaction txCoinbase = network.CreateTransaction(currentBlock.Transactions[0].ToBytes());
-                txCoinbase.Inputs.Clear();
-                txCoinbase.Version = 1;
+                Transaction txCoinbase = network.CreateTransaction();
                 txCoinbase.AddInput(new TxIn(new Script(new[] { Op.GetPushOp(blockinfo[i].extraNonce), Op.GetPushOp(chain.Height) })));
-                // Ignore the (optional) segwit commitment added by CreateNewBlock (as the hardcoded nonces don't account for this)
-                txCoinbase.AddOutput(new TxOut(Money.Zero, new Script()));
-                currentBlock.Transactions[0] = txCoinbase;
-
+                txCoinbase.AddOutput(new TxOut(Money.Coins(50), new Script()));
+                currentBlock.AddTransaction(txCoinbase);
                 if (srcTxs.Count == 0)
                     baseheight = chain.Height;
+                    
                 if (srcTxs.Count < 4)
                     srcTxs.Add(currentBlock.Transactions[0]);
-
+                currentBlock.Header.Bits = currentBlock.Header.GetWorkRequired(network, chain.Tip);
+                
                 currentBlock.UpdateMerkleRoot();
-
-                currentBlock.Header.Nonce = blockinfo[i].nonce;
-
-                chain.SetTip(currentBlock.Header);
+                while (!currentBlock.CheckProofOfWork())
+                    currentBlock.Header.Nonce = ++nonce;
+                    
+                // Serialization sets the BlockSize property.
+                currentBlock = Block.Load(currentBlock.ToBytes(), network);
                 await consensus.BlockMinedAsync(currentBlock);
+                
                 blocks.Add(currentBlock);
             }
 
