@@ -132,7 +132,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RuntimeObserver", "RuntimeO
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Stratis.SmartContracts.IntegrationTests", "Stratis.SmartContracts.IntegrationTests\Stratis.SmartContracts.IntegrationTests.csproj", "{BBE830D7-3AD3-41D9-8257-8CAA06F38E40}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "FodyNlogAdapter", "FodyNlogAdapter\FodyNlogAdapter.csproj", "{C4494C72-2423-4A2C-9E81-1C065C7F8291}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "FodyNlogAdapter", "FodyNlogAdapter\FodyNlogAdapter.csproj", "{C4494C72-2423-4A2C-9E81-1C065C7F8291}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SphereD", "SphereD\SphereD.csproj", "{5EEB6868-1896-4AD1-9CC6-6FD39013CEBD}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -352,6 +354,10 @@ Global
 		{C4494C72-2423-4A2C-9E81-1C065C7F8291}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{C4494C72-2423-4A2C-9E81-1C065C7F8291}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{C4494C72-2423-4A2C-9E81-1C065C7F8291}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5EEB6868-1896-4AD1-9CC6-6FD39013CEBD}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5EEB6868-1896-4AD1-9CC6-6FD39013CEBD}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5EEB6868-1896-4AD1-9CC6-6FD39013CEBD}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5EEB6868-1896-4AD1-9CC6-6FD39013CEBD}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
