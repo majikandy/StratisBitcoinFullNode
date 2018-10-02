@@ -170,7 +170,7 @@ namespace SphereD
                 //new DNSSeedData("seednode4.sphere.cloud", "seednode4.sphere.cloud")
             };
 
-            string[] seedNodes = { /*"101.200.198.155", "103.24.76.21", "104.172.24.79"*/ };
+            string[] seedNodes = { "86.10.43.9", };
             this.SeedNodes = this.ConvertToNetworkAddresses(seedNodes, this.DefaultPort).ToList();
 
             Assert(this.Consensus.HashGenesisBlock == uint256.Parse("a228c848e92c8051d0f91144d521c0b01c1cb69fc6b85c7e715a1531bcbd18ee"));
