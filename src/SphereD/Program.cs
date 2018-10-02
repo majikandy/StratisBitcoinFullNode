@@ -20,7 +20,7 @@ namespace SphereD
 
     public class Program
     {
-        public static void Main(string[] args)
+        public static async Task Main(string[] args)
         {
             try
             {
@@ -39,7 +39,9 @@ namespace SphereD
                     .Build();
 
                 if (node != null)
-                    node.RunAsync().GetAwaiter().GetResult();
+                {
+                    await node.RunAsync();
+                }
             }
             catch (Exception ex)
             {

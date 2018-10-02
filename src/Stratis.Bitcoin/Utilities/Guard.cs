@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Diagnostics;
 
 namespace Stratis.Bitcoin.Utilities
 {
@@ -9,6 +10,7 @@ namespace Stratis.Bitcoin.Utilities
     /// the method being called with invalid set of parameters or object states.
     /// </para>
     /// </summary>
+    [DebuggerStepThrough]
     public static class Guard
     {
         /// <summary>

@@ -100,12 +100,12 @@ namespace SphereD
                 proofOfWorkReward: Money.Coins(4),
                 powTargetTimespan: TimeSpan.FromSeconds(14 * 24 * 60 * 60), // two weeks
                 powTargetSpacing: TimeSpan.FromSeconds(10 * 60),
-                powAllowMinDifficultyBlocks: false,
+                powAllowMinDifficultyBlocks: true,
                 powNoRetargeting: false,
-                powLimit: new Target(new uint256("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
+                powLimit: new Target(new uint256("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
                 minimumChainWork: null,
                 isProofOfStake: true,
-                lastPowBlock: 12500,
+                lastPowBlock: 200,
                 proofOfStakeLimit: new BigInteger(uint256.Parse("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").ToBytes(false)),
                 proofOfStakeLimitV2: new BigInteger(uint256.Parse("000000000000ffffffffffffffffffffffffffffffffffffffffffffffffffff").ToBytes(false)),
                 proofOfStakeReward: Money.COIN
@@ -127,7 +127,7 @@ namespace SphereD
 
             this.Checkpoints = new Dictionary<int, CheckpointInfo>
             {
-                //{ 0, new CheckpointInfo(new uint256("0x0000066e91e46e5a264d42c89e1204963b2ee6be230b443e9159020539d972af"), new uint256("0x0000000000000000000000000000000000000000000000000000000000000000")) },
+               // { 0, new CheckpointInfo(new uint256("a228c848e92c8051d0f91144d521c0b01c1cb69fc6b85c7e715a1531bcbd18ee"), new uint256("0x0000000000000000000000000000000000000000000000000000000000000000")) },
                 //{ 2, new CheckpointInfo(new uint256("0xbca5936f638181e74a5f1e9999c95b0ce77da48c2688399e72bcc53a00c61eff"), new uint256("0x7d61c139a471821caa6b7635a4636e90afcfe5e195040aecbc1ad7d24924db1e")) }, // Premine
                 //{ 50, new CheckpointInfo(new uint256("0x0353b43f4ce80bf24578e7c0141d90d7962fb3a4b4b4e5a17925ca95e943b816"), new uint256("0x7c2af3b10d13f9d2bc6063baaf7f0860d90d870c994378144f9bf85d0d555061")) },
                 //{ 100, new CheckpointInfo(new uint256("0x688468a8aa48cd1c2197e42e7d8acd42760b7e2ac4bcab9d18ac149a673e16f6"), new uint256("0xcf2b1e9e76aaa3d96f255783eb2d907bf6ccb9c1deeb3617149278f0e4a1ab1b")) },
