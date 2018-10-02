@@ -94,7 +94,7 @@ namespace SphereD
                 maxReorgLength: 500,
                 defaultAssumeValid: new uint256("0x55a8205ae4bbf18f4d238c43f43005bd66e0b1f679b39e2c5c62cf6903693a5e"), // 795970
                 maxMoney: long.MaxValue,
-                coinbaseMaturity: 50,
+                coinbaseMaturity: 20,
                 premineHeight: 2,
                 premineReward: Money.Coins(98000000),
                 proofOfWorkReward: Money.Coins(4),
