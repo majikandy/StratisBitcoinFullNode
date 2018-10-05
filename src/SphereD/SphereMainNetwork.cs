@@ -13,7 +13,7 @@ namespace SphereD
         public const int SphereMaxTimeOffsetSeconds = 25 * 60;
 
         /// <summary> Sphere default value for the maximum tip age in seconds to consider the node in initial block download (2 hours). </summary>
-        public const int SphereDefaultMaxTipAgeInSeconds = 2 * 60 * 60;
+        public const int SphereDefaultMaxTipAgeInSeconds = 60;
 
         /// <summary> The name of the root folder containing the different Sphere blockchains (SphereMain, SphereTest, SphereRegTest). </summary>
         public const string SphereRootFolderName = "Sphere";
@@ -27,17 +27,17 @@ namespace SphereD
             // The characters are rarely used upper ASCII, not valid as UTF-8, and produce
             // a large 4-byte int at any alignment.
             var messageStart = new byte[4];
-            messageStart[0] = 0x70;
-            messageStart[1] = 0x35;
-            messageStart[2] = 0x22;
+            messageStart[0] = 0x69;
+            messageStart[1] = 0x34;
+            messageStart[2] = 0x24;
             messageStart[3] = 0x05;
-            uint magic = BitConverter.ToUInt32(messageStart, 0); //0x5223570;
+            uint magic = BitConverter.ToUInt32(messageStart, 0); //0x5243469;
 
             this.Name = "SphereMain";
             this.Magic = magic;
             this.DefaultPort = 16178;
             this.RPCPort = 16174;
-            this.MaxTipAge = 2 * 60 * 60;
+            this.MaxTipAge = SphereDefaultMaxTipAgeInSeconds;
             this.MinTxFee = 10000;
             this.FallbackFee = 10000;
             this.MinRelayTxFee = 10000;
@@ -80,7 +80,7 @@ namespace SphereD
             this.Consensus = new NBitcoin.Consensus(
                 consensusFactory: consensusFactory,
                 consensusOptions: consensusOptions,
-                coinType: 105,
+                coinType: 360,
                 hashGenesisBlock: genesisBlock.GetHash(),
                 subsidyHalvingInterval: 210000,
                 majorityEnforceBlockUpgrade: 750,
@@ -96,10 +96,10 @@ namespace SphereD
                 maxMoney: long.MaxValue,
                 coinbaseMaturity: 20,
                 premineHeight: 2,
-                premineReward: Money.Coins(98000000),
-                proofOfWorkReward: Money.Coins(4),
-                powTargetTimespan: TimeSpan.FromSeconds(14 * 24 * 60 * 60), // two weeks
-                powTargetSpacing: TimeSpan.FromSeconds(10 * 60),
+                premineReward: Money.Coins(100000000 - (50 * 1000)),
+                proofOfWorkReward: Money.Coins(50),
+                powTargetTimespan: TimeSpan.FromSeconds(60 * 60), // 1 hour
+                powTargetSpacing: TimeSpan.FromSeconds(60),
                 powAllowMinDifficultyBlocks: true,
                 powNoRetargeting: false,
                 powLimit: new Target(new uint256("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
@@ -112,9 +112,9 @@ namespace SphereD
             );
 
             this.Base58Prefixes = new byte[12][];
-            this.Base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (63) };
-            this.Base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (125) };
-            this.Base58Prefixes[(int)Base58Type.SECRET_KEY] = new byte[] { (63 + 128) };
+            this.Base58Prefixes[(int)Base58Type.PUBKEY_ADDRESS] = new byte[] { (55) }; //P
+            this.Base58Prefixes[(int)Base58Type.SCRIPT_ADDRESS] = new byte[] { (117) }; //p
+            this.Base58Prefixes[(int)Base58Type.SECRET_KEY] = new byte[] { (55 + 128) };
             this.Base58Prefixes[(int)Base58Type.ENCRYPTED_SECRET_KEY_NO_EC] = new byte[] { 0x01, 0x42 };
             this.Base58Prefixes[(int)Base58Type.ENCRYPTED_SECRET_KEY_EC] = new byte[] { 0x01, 0x43 };
             this.Base58Prefixes[(int)Base58Type.EXT_PUBLIC_KEY] = new byte[] { (0x04), (0x88), (0xB2), (0x1E) };
@@ -127,7 +127,7 @@ namespace SphereD
 
             this.Checkpoints = new Dictionary<int, CheckpointInfo>
             {
-               // { 0, new CheckpointInfo(new uint256("a228c848e92c8051d0f91144d521c0b01c1cb69fc6b85c7e715a1531bcbd18ee"), new uint256("0x0000000000000000000000000000000000000000000000000000000000000000")) },
+                { 0, new CheckpointInfo(this.Consensus.HashGenesisBlock, new uint256("0x0000000000000000000000000000000000000000000000000000000000000000")) },
                 //{ 2, new CheckpointInfo(new uint256("0xbca5936f638181e74a5f1e9999c95b0ce77da48c2688399e72bcc53a00c61eff"), new uint256("0x7d61c139a471821caa6b7635a4636e90afcfe5e195040aecbc1ad7d24924db1e")) }, // Premine
                 //{ 50, new CheckpointInfo(new uint256("0x0353b43f4ce80bf24578e7c0141d90d7962fb3a4b4b4e5a17925ca95e943b816"), new uint256("0x7c2af3b10d13f9d2bc6063baaf7f0860d90d870c994378144f9bf85d0d555061")) },
                 //{ 100, new CheckpointInfo(new uint256("0x688468a8aa48cd1c2197e42e7d8acd42760b7e2ac4bcab9d18ac149a673e16f6"), new uint256("0xcf2b1e9e76aaa3d96f255783eb2d907bf6ccb9c1deeb3617149278f0e4a1ab1b")) },
@@ -173,13 +173,13 @@ namespace SphereD
             string[] seedNodes = { "86.10.43.9", };
             this.SeedNodes = this.ConvertToNetworkAddresses(seedNodes, this.DefaultPort).ToList();
 
-            Assert(this.Consensus.HashGenesisBlock == uint256.Parse("a228c848e92c8051d0f91144d521c0b01c1cb69fc6b85c7e715a1531bcbd18ee"));
-            Assert(this.Genesis.Header.HashMerkleRoot == uint256.Parse("c9b2411791ad65cb125489fd74f0736c7f9777dfb1bef6a759d6cbd4a4731445"));
+            Assert(this.Consensus.HashGenesisBlock == uint256.Parse("25241db67ee04514913e13df485b92e491bd29792adf2c4d46dbc5063ebbd48f"));
+            Assert(this.Genesis.Header.HashMerkleRoot == uint256.Parse("6100c479ec96f01d9ea5decde115c7dd6222dcc290849596fa8e38569ba0a964"));
         }
 
         protected static Block CreateSphereGenesisBlock(ConsensusFactory consensusFactory, uint nTime, uint nNonce, uint nBits, int nVersion, Money genesisReward)
         {
-            string pszTimestamp = "Rainbow Presenter Geoffrey Hayes dies at 76 https://www.bbc.co.uk/news/entertainment-arts-45706667";
+            string pszTimestamp = "BBC News 05/Oct/2018 Nobel Peace Prize for anti-rape activists Nadia Murad and Denis Mukwege https://www.bbc.co.uk/news/world-europe-45759221";
 
             Transaction txNew = consensusFactory.CreateTransaction();
             txNew.Version = 1;
