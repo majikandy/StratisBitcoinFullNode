@@ -2,7 +2,7 @@
   "profiles": {
     "SphereD": {
       "commandName": "Project",
-      "commandLineArgs": "-addnode=86.10.43.9 -mine=1 -mineaddress=Sk3NKpVpPhUtKfWj2noqXjoHz9GKDCoLRN\""
+      "commandLineArgs": "-addnode=127.0.0.1:16179"
     }
   }
 }

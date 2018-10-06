@@ -13,7 +13,7 @@ namespace SphereD
         public const int SphereMaxTimeOffsetSeconds = 25 * 60;
 
         /// <summary> Sphere default value for the maximum tip age in seconds to consider the node in initial block download (2 hours). </summary>
-        public const int SphereDefaultMaxTipAgeInSeconds = 60;
+        public const int SphereDefaultMaxTipAgeInSeconds = 2 * 24 * 60 * 60; // 2 days (if node stopped for 2 days, a block needs mining to get out of IBD)
 
         /// <summary> The name of the root folder containing the different Sphere blockchains (SphereMain, SphereTest, SphereRegTest). </summary>
         public const string SphereRootFolderName = "Sphere";
@@ -98,12 +98,12 @@ namespace SphereD
                 premineHeight: 2,
                 premineReward: Money.Coins(100000000 - (50 * 1000)),
                 proofOfWorkReward: Money.Coins(50),
-                powTargetTimespan: TimeSpan.FromSeconds(60 * 60), // 1 hour
+                powTargetTimespan: TimeSpan.FromSeconds(14 * 24 * 60 * 60), // two weeks
                 powTargetSpacing: TimeSpan.FromSeconds(60),
                 powAllowMinDifficultyBlocks: true,
                 powNoRetargeting: false,
                 powLimit: new Target(new uint256("7fffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff")),
-                minimumChainWork: null,
+                minimumChainWork: uint256.Zero,
                 isProofOfStake: true,
                 lastPowBlock: 1000,
                 proofOfStakeLimit: new BigInteger(uint256.Parse("00000fffffffffffffffffffffffffffffffffffffffffffffffffffffffffff").ToBytes(false)),
