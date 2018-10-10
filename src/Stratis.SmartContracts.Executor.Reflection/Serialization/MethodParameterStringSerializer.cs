@@ -10,7 +10,7 @@ namespace Stratis.SmartContracts.Executor.Reflection.Serialization
     /// <summary>
     /// Class that handles method parameter serialization.
     /// </summary>
-    public sealed class MethodParameterSerializer : IMethodParameterSerializer
+    public sealed class MethodParameterStringSerializer : IMethodParameterSerializer
     {
         /// <summary>
         /// Serializes an array of method parameter objects to the bytes of their string-encoded representation.
@@ -21,10 +21,22 @@ namespace Stratis.SmartContracts.Executor.Reflection.Serialization
 
             foreach (var obj in methodParameters)
             {
-                sb.Add(string.Format("{0}#{1}", (int)GetPrimitiveType(obj), obj));
+                sb.Add(SerializeObject(obj));
             }
 
             return Encoding.UTF8.GetBytes(this.EscapeAndJoin(sb.ToArray()));
+        }
+
+        private static string SerializeObject(object obj)
+        {
+            var primitiveType = GetPrimitiveType(obj);
+
+            // ToString works fine for all of our data types except byte arrays.
+            var serialized = primitiveType == MethodParameterDataType.ByteArray
+                ? Encoding.UTF8.GetString((byte[])obj)
+                : obj.ToString();
+
+            return string.Format("{0}#{1}", (int) primitiveType, serialized);
         }
 
         private static MethodParameterDataType GetPrimitiveType(object o)
@@ -39,23 +51,14 @@ namespace Stratis.SmartContracts.Executor.Reflection.Serialization
                 return MethodParameterDataType.ByteArray;
 
             if (o is char)
-                return MethodParameterDataType.Char;
-
-            if (o is sbyte)
-                return MethodParameterDataType.SByte;
-
-            if (o is short)
-                return MethodParameterDataType.Short;
+                return MethodParameterDataType.Char;         
 
             if (o is string)
                 return MethodParameterDataType.String;
 
             if (o is uint)
                 return MethodParameterDataType.UInt;
-
-            if (o is uint160)
-                return MethodParameterDataType.UInt160;
-
+            
             if (o is ulong)
                 return MethodParameterDataType.ULong;
 
@@ -95,44 +98,35 @@ namespace Stratis.SmartContracts.Executor.Reflection.Serialization
                 string[] parameterSignature = Regex.Split(parameter.Replace(@"\|", "|"), @"(?<!(?<!\\)*\\)\#").ToArray();
                 parameterSignature[1] = parameterSignature[1].Replace(@"\#", "#");
 
-                if (parameterSignature[0] == "1")
+                if (parameterSignature[0] == MethodParameterDataType.Bool.ToString("d"))
                     processedParameters.Add(bool.Parse(parameterSignature[1]));
 
-                else if (parameterSignature[0] == "2")
+                else if (parameterSignature[0] == MethodParameterDataType.Byte.ToString("d"))
                     processedParameters.Add(Convert.ToByte(parameterSignature[1]));
 
-                else if (parameterSignature[0] == "3")
+                else if (parameterSignature[0] == MethodParameterDataType.Char.ToString("d"))
+                    processedParameters.Add(parameterSignature[1][0]);
+
+                else if (parameterSignature[0] == MethodParameterDataType.String.ToString("d"))
                     processedParameters.Add(parameterSignature[1]);
-
-                else if (parameterSignature[0] == "4")
-                    processedParameters.Add(parameterSignature[1]);
-
-                else if (parameterSignature[0] == "5")
-                    processedParameters.Add(Convert.ToSByte(parameterSignature[1]));
-
-                else if (parameterSignature[0] == "6")
-                    processedParameters.Add(int.Parse(parameterSignature[1]));
-
-                else if (parameterSignature[0] == "7")
-                    processedParameters.Add(parameterSignature[1]);
-
-                else if (parameterSignature[0] == "8")
+                
+                else if (parameterSignature[0] == MethodParameterDataType.UInt.ToString("d"))
                     processedParameters.Add(uint.Parse(parameterSignature[1]));
 
-                else if (parameterSignature[0] == "9")
-                    processedParameters.Add(new uint160(parameterSignature[1]));
+                else if (parameterSignature[0] == MethodParameterDataType.Int.ToString("d"))
+                    processedParameters.Add(int.Parse(parameterSignature[1]));
 
-                else if (parameterSignature[0] == "10")
+                else if (parameterSignature[0] == MethodParameterDataType.ULong.ToString("d"))
                     processedParameters.Add(ulong.Parse(parameterSignature[1]));
 
-                else if (parameterSignature[0] == "11")
+                else if (parameterSignature[0] == MethodParameterDataType.Long.ToString("d"))
+                    processedParameters.Add(long.Parse(parameterSignature[1]));
+                
+               else if (parameterSignature[0] == MethodParameterDataType.Address.ToString("d"))
                     processedParameters.Add(new Address(parameterSignature[1]));
 
-                else if (parameterSignature[0] == "12")
-                    processedParameters.Add(long.Parse(parameterSignature[1]));
-
-                else if (parameterSignature[0] == "13")
-                    processedParameters.Add(int.Parse(parameterSignature[1]));
+                else if (parameterSignature[0] == MethodParameterDataType.ByteArray.ToString("d"))
+                    processedParameters.Add(Encoding.UTF8.GetBytes(parameterSignature[1]));
 
                 else
                     throw new Exception(string.Format("{0} is not supported.", parameterSignature[0]));

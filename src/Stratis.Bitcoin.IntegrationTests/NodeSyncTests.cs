@@ -79,11 +79,10 @@ namespace Stratis.Bitcoin.IntegrationTests
         {
             using (NodeBuilder builder = NodeBuilder.Create(this))
             {
-                CoreNode node1 = builder.CreateStratisPowNode(this.powNetwork);
-                CoreNode node2 = builder.CreateStratisPowNode(this.powNetwork);
+                CoreNode node1 = builder.CreateStratisPowNode(this.powNetwork).NotInIBD();
+                CoreNode node2 = builder.CreateStratisPowNode(this.powNetwork).NotInIBD();
                 builder.StartAll();
-                node1.NotInIBD();
-                node2.NotInIBD();
+
                 Assert.Empty(node1.FullNode.ConnectionManager.ConnectedPeers);
                 Assert.Empty(node2.FullNode.ConnectionManager.ConnectedPeers);
                 RPCClient rpc1 = node1.CreateRPCClient();
@@ -100,16 +99,14 @@ namespace Stratis.Bitcoin.IntegrationTests
             }
         }
 
-        [Fact]
+        [Retry]
         public void CanStratisSyncFromCore()
         {
             using (NodeBuilder builder = NodeBuilder.Create(this))
             {
-                CoreNode stratisNode = builder.CreateStratisPowNode(this.powNetwork);
+                CoreNode stratisNode = builder.CreateStratisPowNode(this.powNetwork).NotInIBD();
                 CoreNode coreNode = builder.CreateBitcoinCoreNode();
                 builder.StartAll();
-
-                stratisNode.NotInIBD();
 
                 Block tip = coreNode.FindBlock(10).Last();
                 RPCClient stratisNodeRpcClient = stratisNode.CreateRPCClient();
@@ -136,13 +133,10 @@ namespace Stratis.Bitcoin.IntegrationTests
         {
             using (NodeBuilder builder = NodeBuilder.Create(this))
             {
-                CoreNode stratisNode = builder.CreateStratisPowNode(this.powNetwork);
-                CoreNode stratisNodeSync = builder.CreateStratisPowNode(this.powNetwork);
+                CoreNode stratisNode = builder.CreateStratisPowNode(this.powNetwork).NotInIBD();
+                CoreNode stratisNodeSync = builder.CreateStratisPowNode(this.powNetwork).NotInIBD();
                 CoreNode coreCreateNode = builder.CreateBitcoinCoreNode();
                 builder.StartAll();
-
-                stratisNode.NotInIBD();
-                stratisNodeSync.NotInIBD();
 
                 // first seed a core node with blocks and sync them to a stratis node
                 // and wait till the stratis node is fully synced
@@ -168,13 +162,11 @@ namespace Stratis.Bitcoin.IntegrationTests
         {
             using (NodeBuilder builder = NodeBuilder.Create(this))
             {
-                CoreNode stratisNode = builder.CreateStratisPowNode(this.powNetwork);
+                CoreNode stratisNode = builder.CreateStratisPowNode(this.powNetwork).NotInIBD();
                 CoreNode coreNodeSync = builder.CreateBitcoinCoreNode();
                 CoreNode coreCreateNode = builder.CreateBitcoinCoreNode();
 
                 builder.StartAll();
-
-                stratisNode.NotInIBD();
 
                 // first seed a core node with blocks and sync them to a stratis node
                 // and wait till the stratis node is fully synced
@@ -197,19 +189,16 @@ namespace Stratis.Bitcoin.IntegrationTests
             }
         }
 
-        [Fact]
+        [Retry]
         public void Given_NodesAreSynced_When_ABigReorgHappens_Then_TheReorgIsIgnored()
         {
             using (NodeBuilder builder = NodeBuilder.Create(this))
             {
-                CoreNode stratisMiner = builder.CreateStratisPosNode(this.posNetwork);
-                CoreNode stratisSyncer = builder.CreateStratisPosNode(this.posNetwork);
-                CoreNode stratisReorg = builder.CreateStratisPosNode(this.posNetwork);
+                CoreNode stratisMiner = builder.CreateStratisPosNode(this.posNetwork).NotInIBD().WithWallet();
+                CoreNode stratisSyncer = builder.CreateStratisPosNode(this.posNetwork).NotInIBD();
+                CoreNode stratisReorg = builder.CreateStratisPosNode(this.posNetwork).NotInIBD().WithWallet();
 
                 builder.StartAll();
-                stratisMiner.NotInIBD().WithWallet();
-                stratisSyncer.NotInIBD();
-                stratisReorg.NotInIBD().WithWallet();
 
                 TestHelper.MineBlocks(stratisMiner, 1);
 
@@ -268,20 +257,18 @@ namespace Stratis.Bitcoin.IntegrationTests
         /// </para>
         /// </summary>
         /// <seealso cref="https://github.com/stratisproject/StratisBitcoinFullNode/issues/636"/>
-        [Fact]
+        [Retry]
         public void PullerVsMinerRaceCondition()
         {
             using (NodeBuilder builder = NodeBuilder.Create(this))
             {
                 // This represents local node.
-                CoreNode stratisMinerLocal = builder.CreateStratisPosNode(this.posNetwork);
+                CoreNode stratisMinerLocal = builder.CreateStratisPosNode(this.posNetwork).NotInIBD().WithWallet();
 
                 // This represents remote, which blocks are received by local node using its puller.
-                CoreNode stratisMinerRemote = builder.CreateStratisPosNode(this.posNetwork);
+                CoreNode stratisMinerRemote = builder.CreateStratisPosNode(this.posNetwork).NotInIBD().WithWallet();
 
                 builder.StartAll();
-                stratisMinerLocal.NotInIBD().WithWallet();
-                stratisMinerRemote.NotInIBD().WithWallet();
 
                 // Let's mine block Ap and Bp.
                 TestHelper.MineBlocks(stratisMinerRemote, 2);
@@ -324,28 +311,24 @@ namespace Stratis.Bitcoin.IntegrationTests
         /// Network - Node1 - MiningNode
         /// </para>
         /// </summary>
-        [Fact]
+        [Retry]
         public void MiningNodeWithOneConnectionAlwaysSynced()
         {
             string testFolderPath = Path.Combine(this.GetType().Name, nameof(MiningNodeWithOneConnectionAlwaysSynced));
 
             using (NodeBuilder nodeBuilder = NodeBuilder.Create(testFolderPath))
             {
-                CoreNode minerNode = nodeBuilder.CreateStratisPowNode(this.powNetwork);
+                CoreNode minerNode = nodeBuilder.CreateStratisPowNode(this.powNetwork).NotInIBD().WithWallet();
                 minerNode.Start();
-                minerNode.NotInIBD().WithWallet();
 
-                CoreNode connectorNode = nodeBuilder.CreateStratisPowNode(this.powNetwork);
+                CoreNode connectorNode = nodeBuilder.CreateStratisPowNode(this.powNetwork).NotInIBD().WithWallet();
                 connectorNode.Start();
-                connectorNode.NotInIBD().WithWallet();
 
-                CoreNode firstNode = nodeBuilder.CreateStratisPowNode(this.powNetwork);
+                CoreNode firstNode = nodeBuilder.CreateStratisPowNode(this.powNetwork).NotInIBD().WithWallet();
                 firstNode.Start();
-                firstNode.NotInIBD().WithWallet();
 
-                CoreNode secondNode = nodeBuilder.CreateStratisPowNode(this.powNetwork);
+                CoreNode secondNode = nodeBuilder.CreateStratisPowNode(this.powNetwork).NotInIBD().WithWallet();
                 secondNode.Start();
-                secondNode.NotInIBD().WithWallet();
 
                 TestHelper.Connect(minerNode, connectorNode);
                 TestHelper.Connect(connectorNode, firstNode);

@@ -4,6 +4,7 @@ using System.Text;
 using Microsoft.Extensions.Logging;
 using NBitcoin;
 using Stratis.Bitcoin.Configuration;
+using Stratis.Bitcoin.Utilities;
 
 namespace Stratis.Bitcoin.Features.PoA
 {
@@ -19,12 +20,15 @@ namespace Stratis.Bitcoin.Features.PoA
 
         private readonly PoANetwork network;
 
+        private readonly IPoAMiner miner;
+
         private readonly ILogger logger;
 
-        public FederationManager(NodeSettings nodeSettings, Network network, ILoggerFactory loggerFactory)
+        public FederationManager(NodeSettings nodeSettings, Network network, IPoAMiner miner, ILoggerFactory loggerFactory)
         {
-            this.settings = nodeSettings;
-            this.network = network as PoANetwork;
+            this.settings = Guard.NotNull(nodeSettings, nameof(nodeSettings));
+            this.network = Guard.NotNull(network as PoANetwork, nameof(network));
+            this.miner = Guard.NotNull(miner, nameof(miner));
 
             this.logger = loggerFactory.CreateLogger(this.GetType().FullName);
         }
@@ -38,20 +42,25 @@ namespace Stratis.Bitcoin.Features.PoA
                 // Loaded key has to be a key for current federation.
                 if (!this.network.FederationPublicKeys.Contains(this.FederationMemberKey.PubKey))
                 {
-                    throw new Exception("Key provided is not registered on the network!");
+                    string message = "Key provided is not registered on the network!";
+
+                    this.logger.LogCritical(message);
+                    throw new Exception(message);
                 }
 
                 this.logger.LogInformation("Federation key pair was successfully loaded. Your public key is: {0}.", this.FederationMemberKey.PubKey);
+
+                // Enable mining because we are a federation member.
+                this.miner.InitializeMining();
             }
         }
 
         /// <summary>Loads federation key if it exists.</summary>
         private void LoadKey()
         {
-            var keyTool = new KeyTool();
+            var keyTool = new KeyTool(this.settings.DataFolder);
 
-            string keyPath = keyTool.GetPrivateKeyDefaultPath(this.settings);
-            Key key = keyTool.LoadPrivateKey(keyPath);
+            Key key = keyTool.LoadPrivateKey();
 
             this.IsFederationMember = key != null;
             this.FederationMemberKey = key;
