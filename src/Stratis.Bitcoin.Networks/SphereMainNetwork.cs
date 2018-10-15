@@ -5,7 +5,7 @@ using NBitcoin;
 using NBitcoin.BouncyCastle.Math;
 using NBitcoin.DataEncoders;
 
-namespace SphereD
+namespace Stratis.Bitcoin.Networks
 {
     public class SphereMainNetwork : Network
     {
