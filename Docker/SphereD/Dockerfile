@@ -1,6 +1,6 @@
 FROM microsoft/dotnet:2.1-sdk
 
-RUN git clone https://github.com/stratisproject/StratisBitcoinFullNode.git
+RUN git clone https://github.com/majikandy/StratisBitcoinFullNode.git
 
 VOLUME /root/.stratisbitcoin
 
