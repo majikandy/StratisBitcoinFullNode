@@ -67,8 +67,8 @@ phases:
     condition: and(succeeded(), eq(variables['build.sourcebranch'], 'refs/heads/master'))
     inputs:
       githubEndpoint: github
-      githubRepository: 'CityChainFoundation/city-chain'
-      githubReleaseTitle: 'City Chain (Release $(Build.BuildNumber))'
+      githubRepository: 'majikandy/StratisBitcoinFullNode'
+      githubReleaseTitle: 'Sphere (Release $(Build.BuildNumber))'
       githubReleasePrerelease: true
       githubReleaseAsset: '$(Build.ArtifactStagingDirectory)/Sphere*.*'
       manifestJson: package.json
