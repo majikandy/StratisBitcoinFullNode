@@ -1,4 +1,4 @@
-# City Chain - Continuous Integration Setup for Azure DevOps
+# Sphere - Continuous Integration Setup for Azure DevOps
 
 parameters:
   name: ''
@@ -10,7 +10,7 @@ parameters:
 
 phases:
 - phase: ${{ parameters.name }}
-  displayName: ${{ format('City Chain ({0}-{1})', parameters.platform, parameters.arch) }}
+  displayName: ${{ format('Sphere ({0}-{1})', parameters.platform, parameters.arch) }}
   queue: ${{ parameters.queue }}
   steps:
 
